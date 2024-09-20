@@ -1,25 +1,27 @@
-const jwt = require("jsonwebtoken"); // create token
-const SECRET_KEY = "rahasia-sangat-rahasia"; // secret key
-auth = (req, res, next) => { // middleware
-  let header = req.headers.authorization; // ambil token dari header
-  let token = header && header.split(" ")[1]; // ambil token dari header dan split
+const jwt = require("jsonwebtoken");
+const SECRET_KEY = process.env.SECRET_KEY;
+
+auth = (req, res, next) => {
+  let token =
+    req.headers.authorization && req.headers.authorization.split(" ")[1];
 
   let jwtHeader = {
-    algorithm: "HS256", // algoritma yang digunakan
+    algorithm: "HS256",
   };
-  if (token == null) { // jika token tidak ada
-    res.status(401).json({ message: "Unauthorized" }); // kirim pesan unauthorized
-  } else { // jika token ada
-    jwt.verify(token, SECRET_KEY, jwtHeader, (error, user) => { // verifikasi token
-      if (error) { // jika error
-        res.status(401).json({ // kirim pesan invalid token
-          message: "Invalid token", // pesan
+
+  if (!token) {
+    res.status(401).json({ message: "Unauthorized" });
+  } else {
+    jwt.verify(token, SECRET_KEY, jwtHeader, (error, user) => {
+      if (error) {
+        res.status(401).json({
+          message: "Invalid token",
         });
-      } else { // jika tidak error
-        next(); // lanjutkan
+      } else {
+        next();
       }
     });
   }
 };
 
-module.exports = auth; // export auth
+module.exports = auth;

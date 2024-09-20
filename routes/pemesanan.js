@@ -1,120 +1,113 @@
-const express = require("express"); // import express
-const bodyParser = require("body-parser"); // import body-parser
-const { Op } = require("sequelize"); // import sequelize
-const auth = require("../auth"); // import auth
+const express = require("express");
+const { Op } = require("sequelize");
+const auth = require("../auth");
 
-const app = express(); // inisialisasi express
-app.use(bodyParser.json()); // body parser
-app.use(bodyParser.urlencoded({ extended: true })); // body parser
+const app = express();
 
-const model = require("../models/index"); // import model
-const pemesanan = model.pemesanan; // inisialisasi model
+const model = require("../models/index");
+const pemesanan = model.pemesanan;
 
-// endpoint get all data
-app.get("/getAllData", auth, async (req, res) => { // auth sebagai middleware
-  await pemesanan // select * from pemesanan
-    .findAll({ // find all data
-      include: [ // include table lain
+app.get("/getAllData", auth, async (req, res) => {
+  await pemesanan
+    .findAll({
+      include: [
         {
-          model: model.tipe_kamar, // table tipe_kamar
-          as: "tipe_kamar", // alias
+          model: model.tipe_kamar,
+          as: "tipe_kamar",
         },
         {
-          model: model.user, // table user
-          as: "user", // alias
+          model: model.user,
+          as: "user",
         },
       ],
     })
-    .then((result) => { // jika berhasil
-      res.status(200).json({ // kirim response dengan status 200
-        status: "success", // status success
-        data: result, // data result
+    .then((result) => {
+      res.status(200).json({
+        status: "success",
+        data: result,
       });
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error", // status error
-        message: error.message, // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-// endpoint get data by id
-app.get("/getById/:id", auth, async (req, res) => { // auth sebagai middleware
-  await pemesanan // select * from pemesanan
-    .findByPk(req.params.id, { // find data by primary key
-      include: [ // include table lain
+app.get("/getById/:id", auth, async (req, res) => {
+  await pemesanan
+    .findByPk(req.params.id, {
+      include: [
         {
-          model: model.tipe_kamar, // table tipe_kamar
-          as: "tipe_kamar", // alias
+          model: model.tipe_kamar,
+          as: "tipe_kamar",
         },
         {
-          model: model.user, // table user
-          as: "user", // alias
+          model: model.user,
+          as: "user",
         },
       ],
     })
-    .then((result) => { // jika berhasil
-      if (result) { // jika data ditemukan
-        res.status(200).json({ // kirim response dengan status 200
-          status: "success", // status success
-          data: result, // data result
+    .then((result) => {
+      if (result) {
+        res.status(200).json({
+          status: "success",
+          data: result,
         });
-      } else { // jika data tidak ditemukan
-        res.status(404).json({ // kirim response dengan status 404
-          status: "error", // status error
-          message: "data not found", // pesan data tidak ditemukan
+      } else {
+        res.status(404).json({
+          status: "error",
+          message: "data not found",
         });
       }
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error", // status error
-        message: error.message, // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-// endpoint get data by id user
-app.get("/getByIdUser/:id_user", auth, async (req, res) => { // auth sebagai middleware
-  await pemesanan // select * from pemesanan
-    .findAll({ // find all data
-      where: { id_user: req.params.id_user }, // where id_user = id_user
-      include: [ // include table lain
+app.get("/getByIdUser/:id_user", auth, async (req, res) => {
+  await pemesanan
+    .findAll({
+      where: { id_user: req.params.id_user },
+      include: [
         {
-          model: model.tipe_kamar, // table tipe_kamar
-          as: "tipe_kamar", // alias
+          model: model.tipe_kamar,
+          as: "tipe_kamar",
         },
         {
-          model: model.user, // table user
-          as: "user", // alias
+          model: model.user,
+          as: "user",
         },
       ],
     })
-    .then((result) => { // jika berhasil
-      if (result) { // jika data ditemukan
-        res.status(200).json({ // kirim response dengan status 200
-          status: "success", // status success
-          data: result, // data result
+    .then((result) => {
+      if (result) {
+        res.status(200).json({
+          status: "success",
+          data: result,
         });
-      } else { // jika data tidak ditemukan
-        res.status(404).json({ // kirim response dengan status 404
-          status: "error", // status error
-          message: "data not found", // pesan data tidak ditemukan
+      } else {
+        res.status(404).json({
+          status: "error",
+          message: "data not found",
         });
       }
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error", // status error
-        message: error.message, // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-// endpoint buat data
-app.post("/create", async (req, res) => { // auth sebagai middleware
-  const data = { // data yang akan dimasukkan
+app.post("/create", async (req, res) => {
+  const data = {
     nomor_pemesanan: "PMS-" + Date.now(),
     nama_pemesan: req.body.nama_pemesan,
     email_pemesan: req.body.email_pemesan,
@@ -126,54 +119,52 @@ app.post("/create", async (req, res) => { // auth sebagai middleware
     id_user: req.body.id_user,
     status_pemesanan: req.body.status_pemesanan,
   };
-  await pemesanan // insert into pemesanan
-    .create(data) // create data
-    .then((result) => { // jika berhasil
-      res.status(200).json({ // kirim response dengan status 200
-        status: "success", // status success
-        message: "data has been inserted", // pesan data berhasil dimasukkan
-        data: result, // data result
+  await pemesanan
+    .create(data)
+    .then((result) => {
+      res.status(200).json({
+        status: "success",
+        message: "data has been inserted",
+        data: result,
       });
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error", // status error
-        message: error.message,   // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-// endpoint update data
-app.delete("/delete/:id_pemesanan", auth, async (req, res) => { // auth sebagai middleware
-  const param = { id_pemesanan: req.params.id_pemesanan }; // parameter
-  pemesanan // delete from pemesanan
-    .destroy({ where: param }) // where id_pemesanan = id_pemesanan
-    .then((result) => { // jika berhasil
-      if (result) { // jika data ditemukan
-        res.status(200).json({ // kirim response dengan status 200
-          status: "success", // status success
-          message: "pemesanan has been deleted", // pesan data berhasil dihapus
-          data: param, // data parameter
+app.delete("/delete/:id_pemesanan", auth, async (req, res) => {
+  const param = { id_pemesanan: req.params.id_pemesanan };
+  pemesanan
+    .destroy({ where: param })
+    .then((result) => {
+      if (result) {
+        res.status(200).json({
+          status: "success",
+          message: "pemesanan has been deleted",
+          data: param,
         });
-      } else { // jika data tidak ditemukan
-        res.status(404).json({ // kirim response dengan status 404
-          status: "error", // status error
-          message: "data not found", // pesan data tidak ditemukan
+      } else {
+        res.status(404).json({
+          status: "error",
+          message: "data not found",
         });
       }
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error", // status error
-        message: error.message, // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-// endpoint update data
-app.patch("/edit/:id_pemesanan", auth, async (req, res) => { // auth sebagai middleware
-  const param = { id_pemesanan: req.params.id_pemesanan }; // parameter
-  const data = { // data yang akan diubah
+app.patch("/edit/:id_pemesanan", auth, async (req, res) => {
+  const param = { id_pemesanan: req.params.id_pemesanan };
+  const data = {
     nama_pemesan: req.body.nama_pemesan,
     email_pemesan: req.body.email_pemesan,
     tgl_check_in: req.body.tgl_check_in,
@@ -185,114 +176,111 @@ app.patch("/edit/:id_pemesanan", auth, async (req, res) => { // auth sebagai mid
     status_pemesanan: req.body.status_pemesanan,
   };
 
-  // cek status pemesanan
-  pemesanan.findOne({ where: param }).then((result) => { // select * from pemesanan where id_pemesanan = id_pemesanan
-    if (data.status_pemesanan == "check_out") { // jika status pemesanan = check_out
-      model.detail_pemesanan // select * from detail_pemesanan
-        .findAll({ // find all data
-          where: { id_pemesanan: req.params.id_pemesanan }, // where id_pemesanan = id_pemesanan
+  pemesanan.findOne({ where: param }).then((result) => {
+    if (data.status_pemesanan == "check_out") {
+      model.detail_pemesanan
+        .findAll({
+          where: { id_pemesanan: req.params.id_pemesanan },
         })
-        .then((result) => { // jika berhasil
+        .then((result) => {
           model.kamar
-            .update( // update kamar
+            .update(
               {
                 check_in: null,
                 check_out: null,
               },
               {
-                where: { // where id_kamar = id_kamar
-                  id_kamar: result[0].id_kamar, // id_kamar
+                where: {
+                  id_kamar: result[0].id_kamar,
                 },
               }
             )
-            .then((result) => { // jika berhasil
+            .then((result) => {
               console.log("kamar updated");
             })
-            .catch((error) => { // jika error
+            .catch((error) => {
               console.log(error.message);
             });
         });
     }
     pemesanan
-      .update(data, { where: param }) // update pemesanan set data where id_pemesanan = id_pemesanan
-      .then((result) => { // jika berhasil
-        res.status(200).json({ // kirim response dengan status 200
-          status: "success", // status success
-          message: "pemesanan has been updated", // pesan data berhasil diubah
-          data: result, // data result
+      .update(data, { where: param })
+      .then((result) => {
+        res.status(200).json({
+          status: "success",
+          message: "pemesanan has been updated",
+          data: result,
         });
       })
-      .catch((error) => { // jika error
-        res.status(400).json({ // kirim response dengan status 400
-          status: "error", // status error
-          message: error.message, // pesan error
+      .catch((error) => {
+        res.status(400).json({
+          status: "error",
+          message: error.message,
         });
       });
   });
 });
 
-// endpoint search data
-app.get("/search/:nama_tamu", auth, async (req, res) => { // auth sebagai middleware
-  pemesanan // select * from pemesanan
-    .findAll({ // find all data
-      where: { // where nama_tamu like %nama_tamu%
-        [Op.or]: [ // or
+app.get("/search/:nama_tamu", auth, async (req, res) => {
+  pemesanan
+    .findAll({
+      where: {
+        [Op.or]: [
           {
-            nama_tamu: { // nama_tamu
-              [Op.like]: "%" + req.params.nama_tamu + "%", // like %nama_tamu%
+            nama_tamu: {
+              [Op.like]: "%" + req.params.nama_tamu + "%",
             },
           },
         ],
       },
-      include: [ // join table
+      include: [
         {
-          model: model.tipe_kamar, // join table tipe_kamar
+          model: model.tipe_kamar,
           as: "tipe_kamar",
         },
         {
-          model: model.user, // join table user
+          model: model.user,
           as: "user",
         },
       ],
     })
-    .then((result) => { // jika berhasil
-      res.status(200).json({ // kirim response dengan status 200
-        status: "success", // status success
-        message: "result of nama tamu " + req.params.nama_tamu + "", // pesan hasil pencarian
-        data: result, // data result
+    .then((result) => {
+      res.status(200).json({
+        status: "success",
+        message: "result of nama tamu " + req.params.nama_tamu + "",
+        data: result,
       });
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error",  // status error
-        message: error.message, // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-// endpoint search data
-app.post("/searchByEmailAndNumber", auth, async (req, res) => { // auth sebagai middleware
-  pemesanan // select * from pemesanan
-    .findAll({ // find all data
-      where: { // where email_pemesan = email_pemesan and nomor_pemesanan = nomor_pemesanan
+app.post("/searchByEmailAndNumber", auth, async (req, res) => {
+  pemesanan
+    .findAll({
+      where: {
         email_pemesan: req.body.email,
         nomor_pemesanan: req.body.nomor_pemesanan,
       },
-      include: [ // join table
+      include: [
         {
-          model: model.tipe_kamar, // join table tipe_kamar
+          model: model.tipe_kamar,
           as: "tipe_kamar",
         },
         {
-          model: model.user, // join table user
+          model: model.user,
           as: "user",
         },
       ],
     })
-    .then((result) => { // jika berhasil
-      res.status(200).json({ // kirim response dengan status 200
-        status: "success", // status success
-        message: 
+    .then((result) => {
+      res.status(200).json({
+        status: "success",
+        message:
           "result of email pemesan " +
           req.params.email_pemesan +
           " and nomor pemesanan " +
@@ -301,20 +289,19 @@ app.post("/searchByEmailAndNumber", auth, async (req, res) => { // auth sebagai 
         data: result,
       });
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error", // status error
-        message: error.message, // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-// endpoint filter data
-app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => { // auth sebagai middleware
-  const tgl_check_in = req.params.tgl_check_in.slice(0, 10); // ambil tanggal check in
-  pemesanan // select * from pemesanan
-    .findAll({ // find all data
-      where: { // where tgl_check_in = tgl_check_in
+app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => {
+  const tgl_check_in = req.params.tgl_check_in.slice(0, 10);
+  pemesanan
+    .findAll({
+      where: {
         tgl_check_in: {
           [Op.between]: [
             tgl_check_in + " 00:00:00",
@@ -322,30 +309,30 @@ app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => { // auth se
           ],
         },
       },
-      include: [ // join table
+      include: [
         {
-          model: model.tipe_kamar, // join table tipe_kamar
-          as: "tipe_kamar", // as tipe_kamar
+          model: model.tipe_kamar,
+          as: "tipe_kamar",
         },
         {
-          model: model.user, // join table user
-          as: "user", // as user
+          model: model.user,
+          as: "user",
         },
       ],
     })
-    .then((result) => { // jika berhasil
-      res.status(200).json({ // kirim response dengan status 200
-        status: "success", // status success
-        message: "result of tgl check in " + req.params.tgl_check_in + "", // pesan hasil filter
-        data: result, // data result
+    .then((result) => {
+      res.status(200).json({
+        status: "success",
+        message: "result of tgl check in " + req.params.tgl_check_in + "",
+        data: result,
       });
     })
-    .catch((error) => { // jika error
-      res.status(400).json({ // kirim response dengan status 400
-        status: "error", // status error
-        message: error.message, // pesan error
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
       });
     });
 });
 
-module.exports = app; // export app
+module.exports = app;

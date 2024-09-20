@@ -1,37 +1,47 @@
-//import
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 const path = require("path");
 
-// variable
-const PORT = 8080;
+const PORT = process.env.PORT;
 
-//implementasi
 const app = express();
-app.use(cors());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    allowedHeaders: "Content-Type, Authorization",
+  })
+);
 
-// endpoint user
-const user = require("./routes/user");
-app.use("/user", user);
-
-// endpoint tipe_kamar
 const tipe_kamar = require("./routes/tipe_kamar");
-app.use("/tipe_kamar", tipe_kamar);
-
-// endpoint kamar
+const user = require("./routes/user");
 const kamar = require("./routes/kamar");
-app.use("/kamar", kamar);
-
-// endpoint pemesanan
 const pemesanan = require("./routes/pemesanan");
-app.use("/pemesanan", pemesanan);
-
-// endpoint detail_pemesanan
 const detail_pemesanan = require("./routes/detail_pemesanan");
-app.use("/detail_pemesanan", detail_pemesanan);
 
-//run server
+app.use("/user", user);
+app.use("/tipe_kamar", tipe_kamar);
+app.use("/kamar", kamar);
+app.use("/pemesanan", pemesanan);
+app.use("/detail_pemesanan", detail_pemesanan);
+app.use("/public", express.static(path.join(__dirname, "public")));
+
+app.use("*", (req, res) => {
+  res.status(404).json({ success: false, message: "Api tidak ditemukan" });
+});
+
 app.listen(PORT, () => {
-  console.log("server run on port " + PORT);
+  console.log("🚀 Server run on port http://localhost:" + PORT);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error.message);
+});
+
+process.on("unhandledRejection", (error) => {
+  console.error("Unhandled Rejection:", error.message);
 });

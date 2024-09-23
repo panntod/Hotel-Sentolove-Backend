@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 });
 let upload = multer({ storage: storage });
 
-app.get("/getAllData", auth, async (req, res) => {
+app.get("/getAllData", async (req, res) => {
   await tipe_kamar
     .findAll()
     .then((result) => {

@@ -193,7 +193,7 @@ app.patch("/edit/:id_pemesanan", auth, async (req, res) => {
                 where: {
                   id_kamar: result[0].id_kamar,
                 },
-              }
+              },
             )
             .then((result) => {
               console.log("kamar updated");

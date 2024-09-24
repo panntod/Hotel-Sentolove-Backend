@@ -95,7 +95,7 @@ app.delete("/delete/:id_tipe_kamar", auth, async (req, res) => {
       let dir = path.join(
         __dirname,
         "../public/images/tipe kamar/",
-        oldFileName
+        oldFileName,
       );
       fs.unlink(dir, (err) => err);
     }
@@ -144,7 +144,7 @@ app.patch(
           let dir = path.join(
             __dirname,
             "../public/images/tipe kamar/",
-            oldFileName
+            oldFileName,
           );
           fs.unlink(dir, (err) => err);
           data.foto = req.file.filename;
@@ -184,7 +184,7 @@ app.patch(
         });
       }
     });
-  }
+  },
 );
 
 app.get("/search/:nama_tipe_kamar", auth, async (req, res) => {

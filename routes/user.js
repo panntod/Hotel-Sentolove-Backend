@@ -59,7 +59,10 @@ app.get("/getById/:id", auth, async (req, res) => {
 });
 
 app.post("/register", upload.single("foto"), async (req, res) => {
-  if(!req.file) return res.status(400).json({status: "error", message: "image not found"});
+  if (!req.file)
+    return res
+      .status(400)
+      .json({ status: "error", message: "image not found" });
 
   const data = {
     nama_user: req.body.nama_user,
@@ -109,7 +112,7 @@ app.post("/login", async (req, res) => {
   if (data) {
     const validPassword = await bcrypt.compare(
       req.body.password,
-      data.password
+      data.password,
     );
     if (validPassword) {
       let payload = JSON.stringify(data);

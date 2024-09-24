@@ -14,7 +14,7 @@ app.use(
     origin: true,
     credentials: true,
     allowedHeaders: "Content-Type, Authorization",
-  })
+  }),
 );
 
 const tipe_kamar = require("./routes/tipe_kamar");

@@ -1,5 +1,5 @@
 const express = require("express");
-const { Op } = require("sequelize");
+const { Op, ForeignKeyConstraintError } = require("sequelize");
 const auth = require("../auth");
 
 const app = express();
@@ -106,14 +106,17 @@ app.delete("/delete/:id_kamar", auth, async (req, res) => {
           message: "room has been deleted",
           data: param,
         });
-      } else {
-        res.status(404).json({
-          status: "error",
-          message: "data not found",
-        });
       }
     })
     .catch((error) => {
+      if (error instanceof ForeignKeyConstraintError) {
+        res.status(400).json({
+          status: "error",
+          message:
+            "Tidak bisa menghapus data ini, karena masih terdapat relasi dengan data lain",
+        });
+      }
+
       res.status(400).json({
         status: "error",
         message: error.message,
@@ -215,7 +218,7 @@ app.get("/search/:nomor_kamar", auth, async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "result of nomor kamar " + req.params.nomor_kamar + "",
+        message: "result of nomor kamar " + req.params.nomor_kamar,
         data: result,
       });
     })
@@ -243,7 +246,7 @@ app.get("/getByTipeKamar/:id_tipe_kamar", auth, async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "result of tipe kamar " + req.params.id_tipe_kamar + "",
+        message: "result of tipe kamar " + req.params.id_tipe_kamar,
         data: result,
       });
     })
@@ -255,7 +258,7 @@ app.get("/getByTipeKamar/:id_tipe_kamar", auth, async (req, res) => {
     });
 });
 
-app.get("/getByTipeKamarAvailable/:id_tipe_kamar", auth, async (req, res) => {
+app.get("/getByTipeKamarAvailable/:id_tipe_kamar", async (req, res) => {
   kamar
     .findAll({
       where: {
@@ -273,7 +276,7 @@ app.get("/getByTipeKamarAvailable/:id_tipe_kamar", auth, async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "result of tipe kamar " + req.params.id_tipe_kamar + "",
+        message: "result of tipe kamar " + req.params.id_tipe_kamar,
         data: result,
       });
     })
@@ -286,43 +289,7 @@ app.get("/getByTipeKamarAvailable/:id_tipe_kamar", auth, async (req, res) => {
 });
 
 app.get(
-  "/getTipeKamarAvailable/:check_in/:check_out",
-  auth,
-  async (req, res) => {
-    kamar
-      .findAll({
-        where: {
-          check_in: null,
-          check_out: null,
-        },
-        include: [
-          {
-            model: model.tipe_kamar,
-            as: "tipe_kamar",
-          },
-        ],
-      })
-      .then((result) => {
-        const tipeKamarAvailable = result.map((item) => item.id_tipe_kamar);
-        const uniqueTipeKamarAvailable = [...new Set(tipeKamarAvailable)];
-        res.status(200).json({
-          status: "success",
-          message: "result of tipe kamar available",
-          data: uniqueTipeKamarAvailable,
-        });
-      })
-      .catch((error) => {
-        res.status(400).json({
-          status: "error",
-          message: error.message,
-        });
-      });
-  }
-);
-
-app.get(
   "/getTipeKamarUnavailable/:check_in/:check_out",
-  auth,
   async (req, res) => {
     kamar
       .findAll({
@@ -356,29 +323,29 @@ app.get(
           })
           .then((result) => {
             const tipeKamarAvailable = result.filter(
-              (item) => item.check_in === null && item.check_out === null
+              (item) => item.check_in === null && item.check_out === null,
             );
             const tipeKamarUnavailable = result.filter(
-              (item) => item.check_in !== null && item.check_out !== null
+              (item) => item.check_in !== null && item.check_out !== null,
             );
             const uniqueTipeKamarAvailable = [
               ...new Set(tipeKamarAvailable.map((item) => item.id_tipe_kamar)),
             ];
             const uniqueTipeKamarUnavailable = [
               ...new Set(
-                tipeKamarUnavailable.map((item) => item.id_tipe_kamar)
+                tipeKamarUnavailable.map((item) => item.id_tipe_kamar),
               ),
             ];
 
             model.tipe_kamar.findAll().then((result) => {
               const tipeKamar = result.filter(
                 (item) =>
-                  !uniqueTipeKamarUnavailable.includes(item.id_tipe_kamar)
+                  !uniqueTipeKamarUnavailable.includes(item.id_tipe_kamar),
               );
               tipeKamar.push(
                 ...result.filter((item) =>
-                  uniqueTipeKamarAvailable.includes(item.id_tipe_kamar)
-                )
+                  uniqueTipeKamarAvailable.includes(item.id_tipe_kamar),
+                ),
               );
 
               res.status(200).json({
@@ -395,7 +362,7 @@ app.get(
           message: error.message,
         });
       });
-  }
+  },
 );
 
 module.exports = app;

@@ -1,234 +1,406 @@
 const express = require("express");
-const { Op } = require("sequelize");
+const { Op, col, fn, literal, where } = require("sequelize");
 const auth = require("../auth");
 
 const app = express();
 
 const model = require("../models/index");
-const pemesanan = model.pemesanan;
+const moment = require("moment");
+
+const formatPemesananData = (result) => {
+  const data = result.map((pemesanan) => {
+    const kamarNumbers = pemesanan?.tipe_kamar?.kamar
+      ? pemesanan.tipe_kamar.kamar.map((k) => k.nomor_kamar.split(",")).flat()
+      : [];
+
+    const uniqueKamarNumbers = [...new Set(kamarNumbers)];
+
+    return {
+      id_pemesanan: pemesanan.id_pemesanan,
+      nomor_pemesanan: pemesanan.nomor_pemesanan,
+      nama_pemesan: pemesanan.nama_pemesan,
+      email_pemesan: pemesanan.email_pemesan,
+      tgl_pemesanan: pemesanan.tgl_pemesanan,
+      tgl_check_in: pemesanan.tgl_check_in,
+      tgl_check_out: pemesanan.tgl_check_out,
+      nama_tamu: pemesanan.nama_tamu,
+      jumlah_kamar: pemesanan.jumlah_kamar,
+      harga: pemesanan?.detail_pemesanan[0]?.harga,
+      status_pemesanan: pemesanan.status_pemesanan,
+      nama_user: pemesanan.user?.nama_user,
+      foto: pemesanan?.tipe_kamar?.foto,
+      nama_tipe_kamar: pemesanan.tipe_kamar?.nama_tipe_kamar,
+      nomor_kamar: uniqueKamarNumbers,
+    };
+  });
+
+  return data;
+};
 
 app.get("/getAllData", auth, async (req, res) => {
-  await pemesanan
-    .findAll({
+  try {
+    const result = await model.pemesanan.findAll({
+      attributes: [
+        "id_pemesanan",
+        "nama_pemesan",
+        "nomor_pemesanan",
+        "email_pemesan",
+        "tgl_pemesanan",
+        "tgl_check_in",
+        "tgl_check_out",
+        "nama_tamu",
+        "jumlah_kamar",
+        "status_pemesanan",
+      ],
       include: [
         {
           model: model.tipe_kamar,
           as: "tipe_kamar",
+          attributes: ["nama_tipe_kamar", "foto"],
+          include: [
+            {
+              model: model.kamar,
+              as: "kamar",
+              attributes: [
+                [fn("GROUP_CONCAT", col("nomor_kamar")), "nomor_kamar"],
+              ],
+            },
+          ],
         },
         {
           model: model.user,
           as: "user",
+          attributes: ["nama_user"],
+          required: false,
+        },
+        {
+          model: model.detail_pemesanan,
+          as: "detail_pemesanan",
+          attributes: ["id_kamar", "harga"],
         },
       ],
-    })
-    .then((result) => {
-      res.status(200).json({
-        status: "success",
-        data: result,
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      group: ["pemesanan.id_pemesanan"],
+      order: [["id_pemesanan", "DESC"]],
     });
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Data tidak ditemukan",
+      });
+    }
+
+    const data = formatPemesananData(result);
+
+    return res.json({
+      status: "success",
+      data: data,
+      message: "Berhasil mendapatkan data",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Terjadi kesalahan pada server",
+      error: error.message,
+    });
+  }
 });
 
 app.get("/getById/:id", auth, async (req, res) => {
-  await pemesanan
-    .findByPk(req.params.id, {
+  try {
+    const result = await model.pemesanan.findAll({
+      where: { id_pemesanan: req.params.id },
+      attributes: [
+        "id_pemesanan",
+        "nama_pemesan",
+        "nomor_pemesanan",
+        "email_pemesan",
+        "tgl_pemesanan",
+        "tgl_check_in",
+        "tgl_check_out",
+        "nama_tamu",
+        "jumlah_kamar",
+        "status_pemesanan",
+      ],
       include: [
         {
           model: model.tipe_kamar,
           as: "tipe_kamar",
+          attributes: ["nama_tipe_kamar", "foto"],
+          include: [
+            {
+              model: model.kamar,
+              as: "kamar",
+              attributes: [
+                [fn("GROUP_CONCAT", col("nomor_kamar")), "nomor_kamar"],
+              ],
+            },
+          ],
         },
         {
           model: model.user,
           as: "user",
+          attributes: ["nama_user"],
+          required: false,
+        },
+        {
+          model: model.detail_pemesanan,
+          as: "detail_pemesanan",
+          attributes: ["id_kamar", "harga"],
         },
       ],
-    })
-    .then((result) => {
-      if (result) {
-        res.status(200).json({
-          status: "success",
-          data: result,
-        });
-      } else {
-        res.status(404).json({
-          status: "error",
-          message: "data not found",
-        });
-      }
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      group: ["pemesanan.id_pemesanan"],
+      order: [["id_pemesanan", "DESC"]],
     });
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Data tidak ditemukan",
+      });
+    }
+
+    const data = formatPemesananData(result);
+
+    return res.json({
+      status: "success",
+      data: data,
+      message: "Berhasil mendapatkan data",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Terjadi kesalahan pada server",
+      error: error.message,
+    });
+  }
 });
 
 app.get("/getByIdUser/:id_user", auth, async (req, res) => {
-  await pemesanan
-    .findAll({
+  try {
+    const result = await model.pemesanan.findAll({
       where: { id_user: req.params.id_user },
+      attributes: [
+        "id_pemesanan",
+        "nama_pemesan",
+        "nomor_pemesanan",
+        "email_pemesan",
+        "tgl_pemesanan",
+        "tgl_check_in",
+        "tgl_check_out",
+        "nama_tamu",
+        "jumlah_kamar",
+        "status_pemesanan",
+      ],
       include: [
         {
           model: model.tipe_kamar,
           as: "tipe_kamar",
+          attributes: ["nama_tipe_kamar", "foto"],
+          include: [
+            {
+              model: model.kamar,
+              as: "kamar",
+              attributes: [
+                [fn("GROUP_CONCAT", col("nomor_kamar")), "nomor_kamar"],
+              ],
+            },
+          ],
         },
         {
           model: model.user,
           as: "user",
+          attributes: ["nama_user"],
+          required: false,
+        },
+        {
+          model: model.detail_pemesanan,
+          as: "detail_pemesanan",
+          attributes: ["id_kamar", "harga"],
         },
       ],
-    })
-    .then((result) => {
-      if (result) {
-        res.status(200).json({
-          status: "success",
-          data: result,
-        });
-      } else {
-        res.status(404).json({
-          status: "error",
-          message: "data not found",
-        });
-      }
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      group: ["pemesanan.id_pemesanan"],
+      order: [["id_pemesanan", "DESC"]],
     });
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Data tidak ditemukan",
+      });
+    }
+
+    const data = formatPemesananData(result);
+
+    return res.json({
+      status: "success",
+      data: data,
+      message: "Berhasil mendapatkan data",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Terjadi kesalahan pada server",
+      error: error.message,
+    });
+  }
 });
 
 app.post("/create", async (req, res) => {
-  const data = {
-    nomor_pemesanan: "PMS-" + Date.now(),
-    nama_pemesan: req.body.nama_pemesan,
-    email_pemesan: req.body.email_pemesan,
-    tgl_check_in: req.body.tgl_check_in,
-    tgl_check_out: req.body.tgl_check_out,
-    nama_tamu: req.body.nama_tamu,
-    jumlah_kamar: req.body.jumlah_kamar,
-    id_tipe_kamar: req.body.id_tipe_kamar,
-    id_user: req.body.id_user,
-    status_pemesanan: req.body.status_pemesanan,
-  };
-  await pemesanan
-    .create(data)
-    .then((result) => {
-      res.status(200).json({
-        status: "success",
-        message: "data has been inserted",
-        data: result,
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+  try {
+    const {
+      tipe_kamar,
+      nama_pemesan,
+      check_in,
+      check_out,
+      email_pemesan,
+      nama_tamu,
+      jumlah_kamar,
+    } = req.body;
+
+    const userData = await model.user.findOne({
+      where: { email: email_pemesan },
     });
-});
 
-app.delete("/delete/:id_pemesanan", auth, async (req, res) => {
-  const param = { id_pemesanan: req.params.id_pemesanan };
-  pemesanan
-    .destroy({ where: param })
-    .then((result) => {
-      if (result) {
-        res.status(200).json({
-          status: "success",
-          message: "pemesanan has been deleted",
-          data: param,
-        });
-      } else {
-        res.status(404).json({
-          status: "error",
-          message: "data not found",
-        });
-      }
-    })
-    .catch((error) => {
-      res.status(400).json({
+    if (!userData) {
+      return res.status(400).json({
         status: "error",
-        message: error.message,
+        message: "User yang anda inputkan tidak ada",
       });
-    });
-});
-
-app.patch("/edit/:id_pemesanan", auth, async (req, res) => {
-  const param = { id_pemesanan: req.params.id_pemesanan };
-  const data = {
-    nama_pemesan: req.body.nama_pemesan,
-    email_pemesan: req.body.email_pemesan,
-    tgl_check_in: req.body.tgl_check_in,
-    tgl_check_out: req.body.tgl_check_out,
-    nama_tamu: req.body.nama_tamu,
-    jumlah_kamar: req.body.jumlah_kamar,
-    id_tipe_kamar: req.body.id_tipe_kamar,
-    id_user: req.body.id_user,
-    status_pemesanan: req.body.status_pemesanan,
-  };
-
-  pemesanan.findOne({ where: param }).then((result) => {
-    if (data.status_pemesanan == "check_out") {
-      model.detail_pemesanan
-        .findAll({
-          where: { id_pemesanan: req.params.id_pemesanan },
-        })
-        .then((result) => {
-          model.kamar
-            .update(
-              {
-                check_in: null,
-                check_out: null,
-              },
-              {
-                where: {
-                  id_kamar: result[0].id_kamar,
-                },
-              },
-            )
-            .then((result) => {
-              console.log("kamar updated");
-            })
-            .catch((error) => {
-              console.log(error.message);
-            });
-        });
     }
-    pemesanan
-      .update(data, { where: param })
-      .then((result) => {
-        res.status(200).json({
-          status: "success",
-          message: "pemesanan has been updated",
-          data: result,
-        });
-      })
-      .catch((error) => {
-        res.status(400).json({
-          status: "error",
-          message: error.message,
-        });
+
+    const tgl_pemesanan = moment().format("YYYY-MM-DD");
+    const date1 = moment(check_in);
+    const date2 = moment(check_out);
+
+    if (date2.isBefore(date1)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Masukkan tanggal yang benar",
       });
-  });
+    }
+
+    const tipeRoomCheck = await model.tipe_kamar.findOne({
+      where: { nama_tipe_kamar: tipe_kamar },
+      attributes: [
+        "id_tipe_kamar",
+        "nama_tipe_kamar",
+        "harga",
+        "deskripsi",
+        "foto",
+      ],
+    });
+
+    if (!tipeRoomCheck) {
+      return res.status(400).json({
+        status: "error",
+        message: `Tidak ada tipe kamar dengan nama itu`,
+      });
+    }
+
+    const availableRooms = await model.kamar.findAll({
+      where: {
+        id_tipe_kamar: tipeRoomCheck.id_tipe_kamar,
+        id_kamar: {
+          [Op.notIn]: literal(`
+            (SELECT id_kamar FROM detail_pemesanan 
+            WHERE tgl_akses BETWEEN '${check_in}' AND '${check_out}')
+          `),
+        },
+      },
+      attributes: ["nomor_kamar", "id_kamar"],
+    });
+
+    if (availableRooms.length === 0) {
+      return res.status(400).json({
+        status: "error",
+        message: `Kamar dengan tipe itu dan di tanggal itu sudah terbooking`,
+      });
+    }
+
+    if (availableRooms.length < jumlah_kamar) {
+      return res.status(400).json({
+        status: "error",
+        message: `Hanya ada ${availableRooms.length} kamar tersedia`,
+      });
+    }
+
+    const selectedRooms = availableRooms.slice(0, jumlah_kamar);
+
+    const roomIds = await Promise.all(
+      selectedRooms.map(async (room) => {
+        return await model.kamar.findOne({
+          where: { nomor_kamar: room.nomor_kamar },
+          attributes: ["id_kamar", "nomor_kamar", "id_tipe_kamar"],
+        });
+      }),
+    );
+
+    const checkType = await model.tipe_kamar.findOne({
+      where: { id_tipe_kamar: roomIds[0].id_tipe_kamar },
+      attributes: [
+        "id_tipe_kamar",
+        "nama_tipe_kamar",
+        "harga",
+        "deskripsi",
+        "foto",
+      ],
+    });
+
+    const newData = {
+      nomor_pemesanan: "PMS-" + Date.now(),
+      nama_pemesan,
+      email_pemesan,
+      tgl_pemesanan,
+      tgl_check_in: check_in,
+      tgl_check_out: check_out,
+      nama_tamu,
+      jumlah_kamar,
+      id_tipe_kamar: checkType.id_tipe_kamar,
+      status_pemesanan: "baru",
+      id_user: userData.id_user,
+    };
+
+    const nights = moment
+      .duration(moment(check_out).diff(moment(check_in)))
+      .asDays();
+
+    const totalHarga = nights * checkType.harga * jumlah_kamar;
+    const pemesanan = await model.pemesanan.create(newData);
+    const pemesananID = pemesanan.id_pemesanan;
+
+    for (let m = moment(check_in); m.isBefore(check_out); m.add(1, "days")) {
+      const date = m.format("YYYY-MM-DD");
+      const newDetail = roomIds.map((room) => ({
+        id_pemesanan: pemesananID,
+        id_kamar: room.id_kamar,
+        tgl_akses: date,
+        harga: totalHarga,
+      }));
+
+      await model.detail_pemesanan.bulkCreate(newDetail);
+    }
+    return res.json({
+      status: "success",
+      data: pemesanan,
+      message: "Berhasil membuat transaksi",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      status: "error",
+      message: error.message,
+    });
+  }
 });
 
 app.get("/search/:nama_tamu", auth, async (req, res) => {
-  pemesanan
+  model.pemesanan
     .findAll({
       where: {
         [Op.or]: [
           {
             nama_tamu: {
-              [Op.like]: "%" + req.params.nama_tamu + "%",
+              [Op.like]: req.params.nama_tamu,
             },
           },
         ],
@@ -247,7 +419,7 @@ app.get("/search/:nama_tamu", auth, async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "result of nama tamu " + req.params.nama_tamu + "",
+        message: "Hasil berdasarkan nama tamu: " + req.params.nama_tamu,
         data: result,
       });
     })
@@ -260,7 +432,7 @@ app.get("/search/:nama_tamu", auth, async (req, res) => {
 });
 
 app.post("/searchByEmailAndNumber", auth, async (req, res) => {
-  pemesanan
+  model.pemesanan
     .findAll({
       where: {
         email_pemesan: req.body.email,
@@ -281,11 +453,10 @@ app.post("/searchByEmailAndNumber", auth, async (req, res) => {
       res.status(200).json({
         status: "success",
         message:
-          "result of email pemesan " +
+          "Hasil dari email:" +
           req.params.email_pemesan +
-          " and nomor pemesanan " +
-          req.params.nomor_pemesanan +
-          "",
+          " dan nomor pemesanan: " +
+          req.params.nomor_pemesanan,
         data: result,
       });
     })
@@ -299,7 +470,7 @@ app.post("/searchByEmailAndNumber", auth, async (req, res) => {
 
 app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => {
   const tgl_check_in = req.params.tgl_check_in.slice(0, 10);
-  pemesanan
+  model.pemesanan
     .findAll({
       where: {
         tgl_check_in: {
@@ -324,6 +495,27 @@ app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => {
       res.status(200).json({
         status: "success",
         message: "result of tgl check in " + req.params.tgl_check_in + "",
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    });
+});
+
+app.patch("/edit/:id_pemesanan", auth, async (req, res) => {
+  const param = { id_pemesanan: req.params.id_pemesanan };
+  const { status_pemesanan } = req.body;
+
+  model.pemesanan
+    .update({ status_pemesanan: status_pemesanan }, { where: param })
+    .then((result) => {
+      res.status(200).json({
+        status: "success",
+        message: "Berhasil update data",
         data: result,
       });
     })

@@ -1,5 +1,11 @@
 const express = require("express");
-const { Op, ForeignKeyConstraintError } = require("sequelize");
+const {
+  Op,
+  ForeignKeyConstraintError,
+  literal,
+  fn,
+  col,
+} = require("sequelize");
 const auth = require("../auth");
 
 const app = express();
@@ -73,7 +79,7 @@ app.post("/create", async (req, res) => {
       if (result) {
         res.status(400).json({
           status: "error",
-          message: "nomor kamar already exist",
+          message: "Nomor kamar sudah dipakai",
         });
       } else {
         kamar
@@ -81,7 +87,7 @@ app.post("/create", async (req, res) => {
           .then((result) => {
             res.status(200).json({
               status: "success",
-              message: "data has been inserted",
+              message: "Berhasil menambahkan data",
               data: result,
             });
           })
@@ -129,8 +135,6 @@ app.patch("/edit/:id_kamar", auth, async (req, res) => {
   const data = {
     nomor_kamar: req.body.nomor_kamar,
     id_tipe_kamar: req.body.id_tipe_kamar,
-    check_in: req.body.check_in,
-    check_out: req.body.check_out,
   };
 
   kamar.findOne({ where: param }).then((result) => {
@@ -142,7 +146,7 @@ app.patch("/edit/:id_kamar", auth, async (req, res) => {
             if (result) {
               res.status(400).json({
                 status: "error",
-                message: "nomor kamar already exist",
+                message: "Nomor kamar sudah terpakai",
               });
             } else {
               kamar
@@ -150,7 +154,7 @@ app.patch("/edit/:id_kamar", auth, async (req, res) => {
                 .then((result) => {
                   res.status(200).json({
                     status: "success",
-                    message: "data has been updated",
+                    message: "Berhasil mengubah data",
                     data: {
                       id_kamar: param.id_kamar,
                       nomor_kamar: data.nomor_kamar,
@@ -190,7 +194,7 @@ app.patch("/edit/:id_kamar", auth, async (req, res) => {
     } else {
       res.status(404).json({
         status: "error",
-        message: "data not found",
+        message: "Data tidak ditemukan",
       });
     }
   });
@@ -258,47 +262,22 @@ app.get("/getByTipeKamar/:id_tipe_kamar", auth, async (req, res) => {
     });
 });
 
-app.get("/getByTipeKamarAvailable/:id_tipe_kamar", async (req, res) => {
-  kamar
-    .findAll({
-      where: {
-        id_tipe_kamar: req.params.id_tipe_kamar,
-        check_in: null,
-        check_out: null,
-      },
-      include: [
-        {
-          model: model.tipe_kamar,
-          as: "tipe_kamar",
-        },
-      ],
-    })
-    .then((result) => {
-      res.status(200).json({
-        status: "success",
-        message: "result of tipe kamar " + req.params.id_tipe_kamar,
-        data: result,
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
-    });
-});
-
 app.get(
-  "/getTipeKamarUnavailable/:check_in/:check_out",
+  "/getByTipeKamarAvailable/:id_tipe_kamar/:tgl1/:tgl2",
   async (req, res) => {
-    kamar
-      .findAll({
+    const { id_tipe_kamar, tgl1, tgl2 } = req.params;
+
+    try {
+      const result = await kamar.findAll({
         where: {
-          check_in: {
-            [Op.between]: [req.params.check_in, req.params.check_out],
-          },
-          check_out: {
-            [Op.between]: [req.params.check_in, req.params.check_out],
+          id_tipe_kamar: id_tipe_kamar,
+          id_kamar: {
+            [Op.notIn]: literal(
+              `(SELECT id_kamar FROM detail_pemesanan as dp
+              JOIN pemesanan as p ON p.id_pemesanan = dp.id_pemesanan
+              WHERE p.status_pemesanan != 'checkout'
+              AND dp.tgl_akses BETWEEN '${tgl1}' AND '${tgl2}')`,
+            ),
           },
         },
         include: [
@@ -307,62 +286,75 @@ app.get(
             as: "tipe_kamar",
           },
         ],
-      })
-      .then((result) => {
-        kamar
-          .findAll({
-            where: {
-              id_tipe_kamar: result.map((item) => item.id_tipe_kamar),
-            },
-            include: [
-              {
-                model: model.tipe_kamar,
-                as: "tipe_kamar",
-              },
-            ],
-          })
-          .then((result) => {
-            const tipeKamarAvailable = result.filter(
-              (item) => item.check_in === null && item.check_out === null,
-            );
-            const tipeKamarUnavailable = result.filter(
-              (item) => item.check_in !== null && item.check_out !== null,
-            );
-            const uniqueTipeKamarAvailable = [
-              ...new Set(tipeKamarAvailable.map((item) => item.id_tipe_kamar)),
-            ];
-            const uniqueTipeKamarUnavailable = [
-              ...new Set(
-                tipeKamarUnavailable.map((item) => item.id_tipe_kamar),
-              ),
-            ];
-
-            model.tipe_kamar.findAll().then((result) => {
-              const tipeKamar = result.filter(
-                (item) =>
-                  !uniqueTipeKamarUnavailable.includes(item.id_tipe_kamar),
-              );
-              tipeKamar.push(
-                ...result.filter((item) =>
-                  uniqueTipeKamarAvailable.includes(item.id_tipe_kamar),
-                ),
-              );
-
-              res.status(200).json({
-                status: "success",
-                message: "result of tipe kamar available",
-                data: tipeKamar,
-              });
-            });
-          });
-      })
-      .catch((error) => {
-        res.status(400).json({
-          status: "error",
-          message: error.message,
-        });
+        group: ["kamar.id_kamar"],
+        order: [["id_kamar", "DESC"]],
       });
+
+      res.status(200).json({
+        status: "success",
+        message: "Jumlah kamar yang tersedia " + result.length,
+        data: result,
+      });
+    } catch (error) {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    }
   },
 );
+
+app.get("/getTipeKamarAvailable/:tgl1/:tgl2", async (req, res) => {
+  const { tgl1, tgl2 } = req.params;
+
+  try {
+    const result = await kamar.findAll({
+      include: [
+        {
+          model: model.tipe_kamar,
+          as: "tipe_kamar",
+        },
+      ],
+      where: {
+        id_kamar: {
+          [Op.notIn]: literal(
+            `(SELECT id_kamar from detail_pemesanan WHERE tgl_akses BETWEEN '${tgl1}' AND '${tgl2}')`,
+          ),
+        },
+      },
+      attributes: [
+        [fn("DISTINCT", col("tipe_kamar.id_tipe_kamar")), "id_tipe_kamar"],
+      ],
+      group: ["tipe_kamar.id_tipe_kamar"],
+    });
+
+    if (result.length === 0) {
+      return res.json({
+        status: "success",
+        data: [],
+        message: "Tidak ada kamar yang tersedia di antara tanggal itu",
+      });
+    }
+
+    const responseData = result.map((item) => ({
+      id_tipe_kamar: item.dataValues.id_tipe_kamar,
+      nama_tipe_kamar: item.tipe_kamar.nama_tipe_kamar,
+      harga: item.tipe_kamar.harga,
+      deskripsi: item.tipe_kamar.deskripsi,
+      foto: item.tipe_kamar.foto,
+    }));
+
+    return res.json({
+      status: "success",
+      data: responseData,
+      message: "Berhasil mendapatkan data tipe kamar yang tersedia",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Terjadi kesalahan pada server",
+    });
+  }
+});
 
 module.exports = app;

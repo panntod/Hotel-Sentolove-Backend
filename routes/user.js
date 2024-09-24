@@ -120,20 +120,15 @@ app.post("/login", async (req, res) => {
       res.status(200).json({
         status: "success",
         logged: true,
-        message: "valid password",
+        message: "Berhasil login",
         token: token,
         data: data,
       });
-    } else {
-      res.status(400).json({
-        status: "error",
-        message: "invalid Password",
-      });
-    }
+    } 
   } else {
     res.status(400).json({
       status: "error",
-      message: "user does not exist",
+      message: "Email atau Password tidak sesuai",
     });
   }
 });

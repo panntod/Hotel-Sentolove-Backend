@@ -21,13 +21,11 @@ const tipe_kamar = require("./routes/tipe_kamar");
 const user = require("./routes/user");
 const kamar = require("./routes/kamar");
 const pemesanan = require("./routes/pemesanan");
-const detail_pemesanan = require("./routes/detail_pemesanan");
 
 app.use("/user", user);
 app.use("/tipe_kamar", tipe_kamar);
 app.use("/kamar", kamar);
 app.use("/pemesanan", pemesanan);
-app.use("/detail_pemesanan", detail_pemesanan);
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 app.use("*", (req, res) => {

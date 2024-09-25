@@ -92,7 +92,7 @@ app.post("/register", upload.single("foto"), async (req, res) => {
           .then((result) => {
             res.status(200).json({
               status: "success",
-              message: "user has been registered",
+              message: "Berhasil mendaftar",
               data: result,
             });
           })
@@ -145,7 +145,7 @@ app.delete("/delete/:id_user", auth, async (req, res) => {
     .then((result) => {
       res.json({
         status: "success",
-        message: "user has been deleted",
+        message: "Berhasil menghapus data",
         data: param,
       });
     })
@@ -200,7 +200,7 @@ app.patch("/edit/:id_user", auth, upload.single("foto"), async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "user has been updated",
+        message: "Berhasil mengupdate data",
         data: {
           id_user: param.id_user,
           nama_user: data.nama_user,
@@ -230,7 +230,7 @@ app.get("/search/:nama_user", auth, async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "user has been found",
+        message: "Berhasil mendapatkan data",
         data: result,
       });
     })

@@ -275,7 +275,7 @@ app.get(
             [Op.notIn]: literal(
               `(SELECT id_kamar FROM detail_pemesanan as dp
               JOIN pemesanan as p ON p.id_pemesanan = dp.id_pemesanan
-              WHERE p.status_pemesanan != 'checkout'
+              WHERE p.status_pemesanan != 'check_out'
               AND dp.tgl_akses BETWEEN '${tgl1}' AND '${tgl2}')`,
             ),
           },
@@ -309,19 +309,22 @@ app.get("/getTipeKamarAvailable/:tgl1/:tgl2", async (req, res) => {
 
   try {
     const result = await kamar.findAll({
+      where: {
+        id_kamar: {
+          [Op.notIn]: literal(
+            `(SELECT id_kamar from detail_pemesanan as dp
+            JOIN pemesanan as p ON p.id_pemesanan = dp.id_pemesanan
+            WHERE p.status_pemesanan != 'check_out'
+            AND dp.tgl_akses BETWEEN '${tgl1}' AND '${tgl2}')`,
+          ),
+        },
+      },
       include: [
         {
           model: model.tipe_kamar,
           as: "tipe_kamar",
         },
       ],
-      where: {
-        id_kamar: {
-          [Op.notIn]: literal(
-            `(SELECT id_kamar from detail_pemesanan WHERE tgl_akses BETWEEN '${tgl1}' AND '${tgl2}')`,
-          ),
-        },
-      },
       attributes: [
         [fn("DISTINCT", col("tipe_kamar.id_tipe_kamar")), "id_tipe_kamar"],
       ],

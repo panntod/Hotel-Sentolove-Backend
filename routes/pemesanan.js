@@ -400,7 +400,7 @@ app.get("/search/:nama_tamu", auth, async (req, res) => {
         [Op.or]: [
           {
             nama_tamu: {
-              [Op.like]: req.params.nama_tamu,
+              [Op.substring]: req.params.nama_tamu,
             },
           },
         ],
@@ -432,40 +432,76 @@ app.get("/search/:nama_tamu", auth, async (req, res) => {
 });
 
 app.post("/searchByEmailAndNumber", auth, async (req, res) => {
-  model.pemesanan
-    .findAll({
+  try {
+    const result = await model.pemesanan.findAll({
       where: {
         email_pemesan: req.body.email,
         nomor_pemesanan: req.body.nomor_pemesanan,
       },
+      attributes: [
+        "id_pemesanan",
+        "nama_pemesan",
+        "nomor_pemesanan",
+        "email_pemesan",
+        "tgl_pemesanan",
+        "tgl_check_in",
+        "tgl_check_out",
+        "nama_tamu",
+        "jumlah_kamar",
+        "status_pemesanan",
+      ],
       include: [
         {
           model: model.tipe_kamar,
           as: "tipe_kamar",
+          attributes: ["nama_tipe_kamar", "foto"],
+          include: [
+            {
+              model: model.kamar,
+              as: "kamar",
+              attributes: [
+                [fn("GROUP_CONCAT", col("nomor_kamar")), "nomor_kamar"],
+              ],
+            },
+          ],
         },
         {
           model: model.user,
           as: "user",
+          attributes: ["nama_user"],
+          required: false,
+        },
+        {
+          model: model.detail_pemesanan,
+          as: "detail_pemesanan",
+          attributes: ["id_kamar", "harga"],
         },
       ],
-    })
-    .then((result) => {
-      res.status(200).json({
-        status: "success",
-        message:
-          "Hasil dari email:" +
-          req.params.email_pemesan +
-          " dan nomor pemesanan: " +
-          req.params.nomor_pemesanan,
-        data: result,
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      group: ["pemesanan.id_pemesanan"],
+      order: [["id_pemesanan", "DESC"]],
     });
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Data tidak ditemukan",
+      });
+    }
+
+    const data = formatPemesananData(result);
+
+    return res.json({
+      status: "success",
+      data: data,
+      message: "Berhasil mendapatkan data",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Terjadi kesalahan pada server",
+      error: error.message,
+    });
+  }
 });
 
 app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => {

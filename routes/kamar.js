@@ -262,48 +262,6 @@ app.get("/getByTipeKamar/:id_tipe_kamar", auth, async (req, res) => {
     });
 });
 
-app.get(
-  "/getByTipeKamarAvailable/:id_tipe_kamar/:tgl1/:tgl2",
-  async (req, res) => {
-    const { id_tipe_kamar, tgl1, tgl2 } = req.params;
-
-    try {
-      const result = await kamar.findAll({
-        where: {
-          id_tipe_kamar: id_tipe_kamar,
-          id_kamar: {
-            [Op.notIn]: literal(
-              `(SELECT id_kamar FROM detail_pemesanan as dp
-              JOIN pemesanan as p ON p.id_pemesanan = dp.id_pemesanan
-              WHERE p.status_pemesanan != 'check_out'
-              AND dp.tgl_akses BETWEEN '${tgl1}' AND '${tgl2}')`,
-            ),
-          },
-        },
-        include: [
-          {
-            model: model.tipe_kamar,
-            as: "tipe_kamar",
-          },
-        ],
-        group: ["kamar.id_kamar"],
-        order: [["id_kamar", "DESC"]],
-      });
-
-      res.status(200).json({
-        status: "success",
-        message: "Jumlah kamar yang tersedia " + result.length,
-        data: result,
-      });
-    } catch (error) {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
-    }
-  },
-);
-
 app.get("/getTipeKamarAvailable/:tgl1/:tgl2", async (req, res) => {
   const { tgl1, tgl2 } = req.params;
 

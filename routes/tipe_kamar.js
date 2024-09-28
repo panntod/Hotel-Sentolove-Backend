@@ -194,7 +194,7 @@ app.get("/search/:nama_tipe_kamar", auth, async (req, res) => {
         [Op.or]: [
           {
             nama_tipe_kamar: {
-              [Op.substring]:  req.params.nama_tipe_kamar ,
+              [Op.substring]: req.params.nama_tipe_kamar,
             },
           },
         ],

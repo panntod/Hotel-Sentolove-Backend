@@ -1,8 +1,15 @@
 {
-  "name": "ukk-hotel",
+  "name": "ukk-hotel-backend",
   "version": "1.0.0",
+  "private": true,
   "description": "",
   "main": "index.js",
+  "author": {
+    "name": "Pandhu Arya Munjalindra",
+    "email": "munjalindra.pandhu@gmail.com",
+    "url": "https://panntod.github.io",
+    "github": "https://github/panntod"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
@@ -11,7 +18,6 @@
     "prettier": "prettier --write ."
   },
   "keywords": [],
-  "author": "",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.0",

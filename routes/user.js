@@ -123,12 +123,12 @@ app.post("/login", async (req, res) => {
         token: token,
         data: data,
       });
+    } else {
+      res.status(400).json({
+        status: "error",
+        message: "Email atau Password salah",
+      });
     }
-  } else {
-    res.status(400).json({
-      status: "error",
-      message: "Email atau Password tidak sesuai",
-    });
   }
 });
 

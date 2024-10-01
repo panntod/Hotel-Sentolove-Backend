@@ -6,14 +6,15 @@ const {
   fn,
   col,
 } = require("sequelize");
-const auth = require("../auth");
+const auth = require("../middleware/auth");
 
 const app = express();
 
 const model = require("../models/index");
+const { checkRole } = require("../middleware/check_role");
 const kamar = model.kamar;
 
-app.get("/getAllData", auth, async (req, res) => {
+app.get("/getAllData", auth, checkRole(["admin"]), async (req, res) => {
   await kamar
     .findAll({
       include: [
@@ -68,7 +69,7 @@ app.get("/getById/:id", auth, async (req, res) => {
     });
 });
 
-app.post("/create", async (req, res) => {
+app.post("/create", checkRole(["admin"]), async (req, res) => {
   const data = {
     nomor_kamar: req.body.nomor_kamar,
     id_tipe_kamar: req.body.id_tipe_kamar,
@@ -101,36 +102,41 @@ app.post("/create", async (req, res) => {
     });
 });
 
-app.delete("/delete/:id_kamar", auth, async (req, res) => {
-  const param = { id_kamar: req.params.id_kamar };
-  kamar
-    .destroy({ where: param })
-    .then((result) => {
-      if (result) {
-        res.status(200).json({
-          status: "success",
-          message: "room has been deleted",
-          data: param,
-        });
-      }
-    })
-    .catch((error) => {
-      if (error instanceof ForeignKeyConstraintError) {
+app.delete(
+  "/delete/:id_kamar",
+  auth,
+  checkRole(["admin"]),
+  async (req, res) => {
+    const param = { id_kamar: req.params.id_kamar };
+    kamar
+      .destroy({ where: param })
+      .then((result) => {
+        if (result) {
+          res.status(200).json({
+            status: "success",
+            message: "room has been deleted",
+            data: param,
+          });
+        }
+      })
+      .catch((error) => {
+        if (error instanceof ForeignKeyConstraintError) {
+          res.status(400).json({
+            status: "error",
+            message:
+              "Tidak bisa menghapus data ini, karena masih terdapat relasi dengan data lain",
+          });
+        }
+
         res.status(400).json({
           status: "error",
-          message:
-            "Tidak bisa menghapus data ini, karena masih terdapat relasi dengan data lain",
+          message: error.message,
         });
-      }
-
-      res.status(400).json({
-        status: "error",
-        message: error.message,
       });
-    });
-});
+  },
+);
 
-app.patch("/edit/:id_kamar", auth, async (req, res) => {
+app.patch("/edit/:id_kamar", auth, checkRole(["admin"]), async (req, res) => {
   const param = { id_kamar: req.params.id_kamar };
   const data = {
     nomor_kamar: req.body.nomor_kamar,

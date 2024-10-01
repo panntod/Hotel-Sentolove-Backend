@@ -1,6 +1,6 @@
 const express = require("express");
 const { Op } = require("sequelize");
-const auth = require("../auth");
+const auth = require("../middleware/auth");
 
 const app = express();
 

@@ -220,11 +220,7 @@ app.patch("/edit/:id_user", auth, upload.single("foto"), async (req, res) => {
 app.get("/search/:nama_user", auth, async (req, res) => {
   user
     .findAll({
-      where: {
-        [Op.or]: [
-          { nama_user: { [Op.like]: "%" + req.params.nama_user + "%" } },
-        ],
-      },
+      where: { nama_user: { [Op.substring]: req.params.nama_user } },
     })
     .then((result) => {
       res.status(200).json({

@@ -210,13 +210,9 @@ app.get("/search/:nomor_kamar", auth, async (req, res) => {
   kamar
     .findAll({
       where: {
-        [Op.or]: [
-          {
-            nomor_kamar: {
-              [Op.like]: "%" + req.params.nomor_kamar + "%",
-            },
-          },
-        ],
+        nomor_kamar: {
+          [Op.substring]: req.params.nomor_kamar,
+        },
       },
       include: [
         {

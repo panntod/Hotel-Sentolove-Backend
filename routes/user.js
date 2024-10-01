@@ -80,8 +80,7 @@ app.post("/register", upload.single("foto"), async (req, res) => {
       },
     })
     .then((result) => {
-      resultArr = result;
-      if (resultArr.length > 0) {
+      if (result.length > 0) {
         res.status(400).json({
           status: "error",
           message: "email already exist",

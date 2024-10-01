@@ -1,6 +1,6 @@
 const express = require("express");
 const { Op, literal } = require("sequelize");
-const auth = require("../auth");
+const auth = require("../middleware/auth");
 
 const app = express();
 
@@ -83,6 +83,7 @@ app.get("/getAllData", auth, async (req, res) => {
     if (result.length === 0) {
       return res.status(404).json({
         status: "error",
+        data: [],
         message: "Data tidak ditemukan",
       });
     }
@@ -143,6 +144,7 @@ app.get("/getById/:id", auth, async (req, res) => {
     if (result.length === 0) {
       return res.status(404).json({
         status: "error",
+        data: [],
         message: "Data tidak ditemukan",
       });
     }
@@ -312,17 +314,6 @@ app.post("/create", async (req, res) => {
 
     let selectedRooms = randomRoom.slice(0, jumlah_kamar);
 
-    const checkType = await model.tipe_kamar.findOne({
-      where: { id_tipe_kamar: availableRooms[0].id_tipe_kamar },
-      attributes: [
-        "id_tipe_kamar",
-        "nama_tipe_kamar",
-        "harga",
-        "deskripsi",
-        "foto",
-      ],
-    });
-
     const newData = {
       nomor_pemesanan: "PMS-" + Date.now(),
       nama_pemesan,
@@ -332,7 +323,7 @@ app.post("/create", async (req, res) => {
       tgl_check_out: check_out,
       nama_tamu,
       jumlah_kamar,
-      id_tipe_kamar: checkType.id_tipe_kamar,
+      id_tipe_kamar: tipeRoomCheck.id_tipe_kamar,
       status_pemesanan: "baru",
       id_user: userData.id_user,
     };
@@ -341,7 +332,7 @@ app.post("/create", async (req, res) => {
       .duration(moment(check_out).diff(moment(check_in)))
       .asDays();
 
-    const totalHarga = nights * checkType.harga * jumlah_kamar;
+    const totalHarga = nights * tipeRoomCheck.harga * jumlah_kamar;
     const pemesanan = await model.pemesanan.create(newData);
     const pemesananID = pemesanan.id_pemesanan;
 

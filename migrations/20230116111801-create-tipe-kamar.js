@@ -1,12 +1,13 @@
 "use strict";
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable("tipe_kamar", {
       id_tipe_kamar: {
         allowNull: false,
-        autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER(11),
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
       },
       nama_tipe_kamar: {
         type: Sequelize.STRING(100),

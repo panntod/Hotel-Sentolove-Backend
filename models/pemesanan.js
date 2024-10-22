@@ -1,5 +1,7 @@
 "use strict";
+
 const { Model } = require("sequelize");
+const { v4: uuidv4 } = require("uuid");
 module.exports = (sequelize, DataTypes) => {
   class pemesanan extends Model {
     static associate(models) {
@@ -20,9 +22,9 @@ module.exports = (sequelize, DataTypes) => {
   pemesanan.init(
     {
       id_pemesanan: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: () => uuidv4(),
         primaryKey: true,
-        autoIncrement: true,
       },
       nomor_pemesanan: DataTypes.STRING,
       nama_pemesan: DataTypes.STRING,
@@ -32,9 +34,9 @@ module.exports = (sequelize, DataTypes) => {
       tgl_check_out: DataTypes.DATE,
       nama_tamu: DataTypes.STRING,
       jumlah_kamar: DataTypes.INTEGER,
-      id_tipe_kamar: DataTypes.INTEGER,
+      id_tipe_kamar: DataTypes.UUID,
       status_pemesanan: DataTypes.ENUM("baru", "check_in", "check_out"),
-      id_user: DataTypes.INTEGER,
+      id_user: DataTypes.UUID,
     },
     {
       sequelize,

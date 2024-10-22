@@ -27,8 +27,8 @@ const userSchema = Joi.object({
 exports.validateUser = async (req, res, next) => {
   const { error } = userSchema.validate(req.body);
   if (error) {
-    const message = error.details.message;
-    return res.status(400).json({ status: "error", message });
+    const message = error.details.map((item) => item.message).join("");
+    return res.status(400).json({ status: "error", message: message });
   }
 
   const isNewEmail = await model.user.findOne({
@@ -59,8 +59,8 @@ const userLoginSchema = Joi.object({
 exports.validateUserLogin = async (req, res, next) => {
   const { error } = userLoginSchema.validate(req.body);
   if (error) {
-    const message = error.details.message;
-    return res.status(400).json({ status: "error", message });
+    const message = error.details.map((item) => item.message).join(" ");
+    return res.status(400).json({ status: "error", message: message });
   }
 
   const validUser = await model.user.findOne({
@@ -84,5 +84,6 @@ exports.validateUserLogin = async (req, res, next) => {
       .json({ status: "error", message: "Kesalahan email atau password" });
   }
 
+  req.validUser = validUser;
   next();
 };

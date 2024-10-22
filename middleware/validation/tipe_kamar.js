@@ -7,11 +7,6 @@ const tipeKamarSchema = Joi.object({
     "string.empty": "Nama tipe kamar tidak boleh kosong",
     "any.required": "Nama tipe kamar wajib diisi",
   }),
-  tipe_kamar: Joi.string().required().messages({
-    "string.base": "Tipe kamar harus berupa teks",
-    "string.empty": "Tipe kamar tidak boleh kosong",
-    "any.required": "Tipe kamar wajib diisi",
-  }),
   harga: Joi.number().required().messages({
     "number.base": "Harga harus berupa angka",
     "number.empty": "Harga tidak boleh kosong",
@@ -27,8 +22,8 @@ const tipeKamarSchema = Joi.object({
 exports.validateTipeKamar = async (req, res, next) => {
   const { error } = tipeKamarSchema.validate(req.body);
   if (error) {
-    const message = error.details.message;
-    return res.status(400).json({ status: "error", message });
+     const message = error.details.map((item) => item.message).join(" ")
+    return res.status(400).json({ status: "error", message: message });
   }
 
   const isNewName = await model.tipe_kamar.findOne({

@@ -7,10 +7,11 @@ const kamarSchema = Joi.object({
     "string.empty": "Nomor kamar tidak boleh kosong",
     "any.required": "Nomor kamar wajib diisi",
   }),
-  id_tipe_kamar: Joi.number().required().messages({
-    "number.base": "Id tipe kamar harus berupa angka",
-    "number.empty": "Id tipe kamar tidak boleh kosong",
+  id_tipe_kamar: Joi.string().guid({ version: "uuidv4" }).required().messages({
+    "string.base": "Id tipe kamar harus berupa teks",
+    "string.empty": "Id tipe kamar tidak boleh kosong",
     "any.required": "Id tipe kamar wajib diisi",
+    "string.guid": "Id tipe kamar harus berupa UUID",
   }),
 });
 
@@ -18,8 +19,8 @@ exports.validateKamar = async (req, res, next) => {
   const { error } = kamarSchema.validate(req.body);
 
   if (error) {
-    const message = error.details.message;
-    return res.status(400).json({ status: "error", message });
+    const message = error.details.map((item) => item.message).join(" ");
+    return res.status(400).json({ status: "error", message: message });
   }
 
   const validTipeKamar = await model.tipe_kamar.findOne({

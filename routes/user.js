@@ -1,17 +1,18 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
+const app = express();
+const user = require("../models/index").user;
+
 const { Op, ForeignKeyConstraintError } = require("sequelize");
 const auth = require("../middleware/auth");
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = process.env.SECRET_KEY;
-
-const app = express();
-
-const user = require("../models/index").user;
 
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+
+const SECRET_KEY = process.env.SECRET_KEY;
+const { checkRole } = require("../middleware/check_role");
 const {
   validateUser,
   validateUserLogin,
@@ -28,7 +29,7 @@ const storage = multer.diskStorage({
 
 let upload = multer({ storage: storage });
 
-app.get("/getAllData", auth, async (req, res) => {
+app.get("/getAllData", auth, checkRole(["admin"]), async (req, res) => {
   await user
     .findAll()
     .then((result) => {
@@ -95,10 +96,11 @@ app.post("/register", upload.single("foto"), validateUser, async (req, res) => {
 
 app.post("/login", validateUserLogin, async (req, res) => {
   const data = {
-    nama_user: req.body.nama_user,
-    email: req.body.email,
-    role: req.body.role,
-    foto: req.file.filename,
+    nama_user: req.validUser.nama_user,
+    email: req.validUser.email,
+    role: req.validUser.role,
+    foto: req.validUser.foto,
+    id_user: req.validUser.id_user,
   };
   let payload = JSON.stringify(data);
   let token = jwt.sign(payload, SECRET_KEY);
@@ -111,37 +113,49 @@ app.post("/login", validateUserLogin, async (req, res) => {
   });
 });
 
-app.delete("/delete/:id_user", auth, async (req, res) => {
-  const dataUser = await user.findOne({
-    where: { id_user: req.params.id_user },
-  });
-
-  user
-    .destroy({ where: { id_user: req.params.id_user } })
-    .then((_) => {
-      let oldFileName = dataUser.foto;
-      let dir = path.join(__dirname, "../public/images/user/", oldFileName);
-      fs.unlink(dir, (err) => err);
-
-      res.json({
-        status: "success",
-        message: "Berhasil menghapus data",
-      });
-    })
-    .catch((error) => {
-      if (error instanceof ForeignKeyConstraintError) {
-        res.status(400).json({
-          status: "error",
-          message:
-            "Tidak bisa menghapus data ini, karena masih terdapat relasi dengan data lain",
-        });
-      }
-
-      res.json({
-        status: "error",
-        message: error.message,
-      });
+app.delete("/delete/:id_user", auth, checkRole(["admin"]), async (req, res) => {
+  try {
+    const params = { id_user: req.params.id_user };
+    const dataUser = await user.findOne({
+      where: params,
     });
+
+    if (!dataUser) {
+      return res.status(404).json({
+        status: "error",
+        message: "User tidak ditemukan",
+      });
+    }
+
+    await user.destroy({ where: params });
+
+    let oldFileName = dataUser.foto;
+    let dir = path.join(__dirname, "../public/images/user/", oldFileName);
+
+    fs.unlink(dir, (err) => {
+      if (err) {
+        console.error("Gagal menghapus file gambar:", err);
+      }
+    });
+
+    res.json({
+      status: "success",
+      message: "Berhasil menghapus data",
+    });
+  } catch (error) {
+    if (error instanceof ForeignKeyConstraintError) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Tidak bisa menghapus data ini, karena masih terdapat relasi dengan data lain",
+      });
+    }
+
+    return res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
+  }
 });
 
 app.patch("/edit/:id_user", auth, upload.single("foto"), async (req, res) => {
@@ -169,14 +183,14 @@ app.patch("/edit/:id_user", auth, upload.single("foto"), async (req, res) => {
     user
       .findAll({
         where: {
-          [Op.or]: [{ email: data.email }],
+          email: data.email,
         },
       })
       .then((result) => {
         if (result.length > 0) {
           res.status(400).json({
             status: "error",
-            message: "email already exist",
+            message: "Email sudah terdaftar",
           });
         }
       });

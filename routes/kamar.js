@@ -15,7 +15,7 @@ const { checkRole } = require("../middleware/check_role");
 const { validateKamar } = require("../middleware/validation/kamar");
 const kamar = model.kamar;
 
-app.get("/getAllData", auth, checkRole(["admin"]), async (req, res) => {
+app.get("/getAllData", async (req, res) => {
   await kamar
     .findAll({
       include: [
@@ -39,7 +39,7 @@ app.get("/getAllData", auth, checkRole(["admin"]), async (req, res) => {
     });
 });
 
-app.get("/getById/:id", auth, async (req, res) => {
+app.get("/getById/:id", async (req, res) => {
   await kamar
     .findByPk(req.params.id, {
       include: [
@@ -70,28 +70,34 @@ app.get("/getById/:id", auth, async (req, res) => {
     });
 });
 
-app.post("/create", checkRole(["admin"]), validateKamar, async (req, res) => {
-  const data = {
-    nomor_kamar: req.body.nomor_kamar,
-    id_tipe_kamar: req.body.id_tipe_kamar,
-  };
+app.post(
+  "/create",
+  auth,
+  checkRole(["admin"]),
+  validateKamar,
+  async (req, res) => {
+    const data = {
+      nomor_kamar: req.body.nomor_kamar,
+      id_tipe_kamar: req.body.id_tipe_kamar,
+    };
 
-  kamar
-    .create(data)
-    .then((result) => {
-      res.status(200).json({
-        status: "success",
-        message: "Berhasil menambahkan data",
-        data: result,
+    kamar
+      .create(data)
+      .then((result) => {
+        res.status(200).json({
+          status: "success",
+          message: "Berhasil menambahkan data",
+          data: result,
+        });
+      })
+      .catch((error) => {
+        res.status(400).json({
+          status: "error",
+          message: error.message,
+        });
       });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
-    });
-});
+  },
+);
 
 app.delete(
   "/delete/:id_kamar",
@@ -197,7 +203,7 @@ app.patch("/edit/:id_kamar", auth, checkRole(["admin"]), async (req, res) => {
   });
 });
 
-app.get("/search/:nomor_kamar", auth, async (req, res) => {
+app.get("/search/:nomor_kamar", async (req, res) => {
   kamar
     .findAll({
       where: {
@@ -227,7 +233,7 @@ app.get("/search/:nomor_kamar", auth, async (req, res) => {
     });
 });
 
-app.get("/getByTipeKamar/:id_tipe_kamar", auth, async (req, res) => {
+app.get("/getByTipeKamar/:id_tipe_kamar", async (req, res) => {
   kamar
     .findAll({
       where: {

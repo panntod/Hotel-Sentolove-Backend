@@ -1,5 +1,5 @@
 const express = require("express");
-const { Op, literal } = require("sequelize");
+const { Op, literal, or } = require("sequelize");
 const auth = require("../middleware/auth");
 
 const app = express();
@@ -20,6 +20,7 @@ const formatPemesananData = async (result) => {
           id_kamar: id_kamar,
         },
         attributes: ["nomor_kamar"],
+        order: [["nomor_kamar", "ASC"]],
       });
 
       return {
@@ -78,7 +79,7 @@ app.get("/getAllData", auth, async (req, res) => {
           attributes: ["id_kamar", "harga"],
         },
       ],
-      order: [["id_pemesanan", "DESC"]],
+      order: [["tgl_pemesanan", "DESC"]],
     });
 
     if (result.length === 0) {
@@ -139,7 +140,7 @@ app.get("/getById/:id", auth, async (req, res) => {
           attributes: ["id_kamar", "harga"],
         },
       ],
-      order: [["id_pemesanan", "DESC"]],
+      order: [["tgl_pemesanan", "DESC"]],
     });
 
     if (result.length === 0) {
@@ -200,7 +201,7 @@ app.get("/getByIdUser/:id_user", auth, async (req, res) => {
           attributes: ["id_kamar", "harga"],
         },
       ],
-      order: [["id_pemesanan", "DESC"]],
+      order: [["tgl_pemesanan", "DESC"]],
     });
 
     if (result.length === 0) {
@@ -227,7 +228,7 @@ app.get("/getByIdUser/:id_user", auth, async (req, res) => {
   }
 });
 
-app.post("/create", validatePemesanan, async (req, res) => {
+app.post("/create", auth, validatePemesanan, async (req, res) => {
   try {
     const {
       tipe_kamar,
@@ -434,7 +435,7 @@ app.post("/searchByEmailAndNumber", auth, async (req, res) => {
           attributes: ["id_kamar", "harga"],
         },
       ],
-      order: [["id_pemesanan", "DESC"]],
+      order: [["tgl_pemesanan", "DESC"]],
     });
 
     if (result.length === 0) {

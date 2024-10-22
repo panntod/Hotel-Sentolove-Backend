@@ -11,6 +11,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { validateTipeKamar } = require("../middleware/validation/tipe_kamar");
+const { checkRole } = require("../middleware/check_role");
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => {
@@ -39,7 +40,7 @@ app.get("/getAllData", async (req, res) => {
     });
 });
 
-app.get("/getById/:id", auth, async (req, res) => {
+app.get("/getById/:id", async (req, res) => {
   await tipe_kamar
     .findByPk(req.params.id)
     .then((result) => {
@@ -65,6 +66,8 @@ app.get("/getById/:id", auth, async (req, res) => {
 
 app.post(
   "/create",
+  auth,
+  checkRole(["admin"]),
   upload.single("foto"),
   validateTipeKamar,
   async (req, res) => {
@@ -92,46 +95,52 @@ app.post(
   },
 );
 
-app.delete("/delete/:id_tipe_kamar", auth, async (req, res) => {
-  const param = { id_tipe_kamar: req.params.id_tipe_kamar };
-  tipe_kamar.findOne({ where: param }).then((result) => {
-    if (result) {
-      let oldFileName = result.foto;
-      let dir = path.join(
-        __dirname,
-        "../public/images/tipe kamar/",
-        oldFileName,
-      );
-      fs.unlink(dir, (err) => err);
-    }
-  });
-  tipe_kamar
-    .destroy({ where: param })
-    .then((result) => {
+app.delete(
+  "/delete/:id_tipe_kamar",
+  auth,
+  checkRole(["admin"]),
+  async (req, res) => {
+    const param = { id_tipe_kamar: req.params.id_tipe_kamar };
+    tipe_kamar.findOne({ where: param }).then((result) => {
       if (result) {
-        res.status(200).json({
-          status: "success",
-          message: "type room has been deleted",
-          data: param,
-        });
-      } else {
-        res.status(404).json({
-          status: "error",
-          message: "data not found",
-        });
+        let oldFileName = result.foto;
+        let dir = path.join(
+          __dirname,
+          "../public/images/tipe kamar/",
+          oldFileName,
+        );
+        fs.unlink(dir, (err) => err);
       }
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
     });
-});
+    tipe_kamar
+      .destroy({ where: param })
+      .then((result) => {
+        if (result) {
+          res.status(200).json({
+            status: "success",
+            message: "type room has been deleted",
+            data: param,
+          });
+        } else {
+          res.status(404).json({
+            status: "error",
+            message: "data not found",
+          });
+        }
+      })
+      .catch((error) => {
+        res.status(400).json({
+          status: "error",
+          message: error.message,
+        });
+      });
+  },
+);
 
 app.patch(
   "/edit/:id_tipe_kamar",
   auth,
+  checkRole(["admin"]),
   upload.single("foto"),
   async (req, res) => {
     const param = { id_tipe_kamar: req.params.id_tipe_kamar };
@@ -191,7 +200,7 @@ app.patch(
   },
 );
 
-app.get("/search/:nama_tipe_kamar", auth, async (req, res) => {
+app.get("/search/:nama_tipe_kamar", async (req, res) => {
   tipe_kamar
     .findAll({
       where: {

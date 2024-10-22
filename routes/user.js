@@ -1,6 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const { Op } = require("sequelize");
+const { Op, ForeignKeyConstraintError } = require("sequelize");
 const auth = require("../middleware/auth");
 const jwt = require("jsonwebtoken");
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -12,6 +12,10 @@ const user = require("../models/index").user;
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const {
+  validateUser,
+  validateUserLogin,
+} = require("../middleware/validation/user");
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => {
@@ -58,11 +62,11 @@ app.get("/getById/:id", auth, async (req, res) => {
     });
 });
 
-app.post("/register", upload.single("foto"), async (req, res) => {
+app.post("/register", upload.single("foto"), validateUser, async (req, res) => {
   if (!req.file)
     return res
       .status(400)
-      .json({ status: "error", message: "image not found" });
+      .json({ status: "error", message: "Please select image" });
 
   const data = {
     nama_user: req.body.nama_user,
@@ -70,85 +74,69 @@ app.post("/register", upload.single("foto"), async (req, res) => {
     email: req.body.email,
     role: req.body.role,
     foto: req.file.filename,
-    resultArr: {},
   };
 
-  await user
-    .findAll({
-      where: {
-        [Op.or]: [{ email: data.email }],
-      },
-    })
+  user
+    .create(data)
     .then((result) => {
-      if (result.length > 0) {
-        res.status(400).json({
-          status: "error",
-          message: "email already exist",
-        });
-      } else {
-        user
-          .create(data)
-          .then((result) => {
-            res.status(200).json({
-              status: "success",
-              message: "Berhasil mendaftar",
-              data: result,
-            });
-          })
-          .catch((error) => {
-            res.status(400).json({
-              status: "error",
-              message: error.message,
-            });
-          });
-      }
-    });
-});
-
-app.post("/login", async (req, res) => {
-  const data = await user.findOne({ where: { email: req.body.email } });
-
-  if (data) {
-    const validPassword = await bcrypt.compare(
-      req.body.password,
-      data.password,
-    );
-    if (validPassword) {
-      let payload = JSON.stringify(data);
-      let token = jwt.sign(payload, SECRET_KEY);
       res.status(200).json({
         status: "success",
-        logged: true,
-        message: "Berhasil login",
-        token: token,
-        data: data,
-      });
-    } else {
-      res.status(400).json({
-        status: "error",
-        message: "Email atau Password salah",
-      });
-    }
-  }
-});
-
-app.delete("/delete/:id_user", auth, async (req, res) => {
-  const param = { id_user: req.params.id_user };
-  user.findOne({ where: param }).then((result) => {
-    let oldFileName = result.foto;
-    let dir = path.join(__dirname, "../public/images/user/", oldFileName);
-    fs.unlink(dir, (err) => err);
-  });
-  user
-    .destroy({ where: param })
-    .then((result) => {
-      res.json({
-        status: "success",
-        message: "Berhasil menghapus data",
-        data: param,
+        message: "Berhasil mendaftar",
+        data: result,
       });
     })
     .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
+    });
+});
+
+app.post("/login", validateUserLogin, async (req, res) => {
+  const data = {
+    nama_user: req.body.nama_user,
+    email: req.body.email,
+    role: req.body.role,
+    foto: req.file.filename,
+  };
+  let payload = JSON.stringify(data);
+  let token = jwt.sign(payload, SECRET_KEY);
+  res.status(200).json({
+    status: "success",
+    logged: true,
+    message: "Berhasil login",
+    token: token,
+    data: data,
+  });
+});
+
+app.delete("/delete/:id_user", auth, async (req, res) => {
+  const dataUser = await user.findOne({
+    where: { id_user: req.params.id_user },
+  });
+
+  user
+    .destroy({ where: { id_user: req.params.id_user } })
+    .then((_) => {
+      let oldFileName = dataUser.foto;
+      let dir = path.join(__dirname, "../public/images/user/", oldFileName);
+      fs.unlink(dir, (err) => err);
+
+      res.json({
+        status: "success",
+        message: "Berhasil menghapus data",
+      });
+    })
+    .catch((error) => {
+      if (error instanceof ForeignKeyConstraintError) {
+        res.status(400).json({
+          status: "error",
+          message:
+            "Tidak bisa menghapus data ini, karena masih terdapat relasi dengan data lain",
+        });
+      }
+
       res.json({
         status: "error",
         message: error.message,
@@ -163,7 +151,6 @@ app.patch("/edit/:id_user", auth, upload.single("foto"), async (req, res) => {
     password: req.body.password,
     email: req.body.email,
     role: req.body.role,
-    resultArr: {},
   };
   if (req.file) {
     user.findOne({ where: param }).then((result) => {

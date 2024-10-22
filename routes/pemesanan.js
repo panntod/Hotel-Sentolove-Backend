@@ -6,6 +6,7 @@ const app = express();
 
 const model = require("../models/index");
 const moment = require("moment");
+const { validatePemesanan } = require("../middleware/validation/pemesanan");
 
 const formatPemesananData = async (result) => {
   const data = await Promise.all(
@@ -226,7 +227,7 @@ app.get("/getByIdUser/:id_user", auth, async (req, res) => {
   }
 });
 
-app.post("/create", async (req, res) => {
+app.post("/create", validatePemesanan, async (req, res) => {
   try {
     const {
       tipe_kamar,
@@ -485,7 +486,7 @@ app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "result of tgl check in " + req.params.tgl_check_in + "",
+        message: "Hasil pencarian tangal: " + req.params.tgl_check_in,
         data: result,
       });
     })

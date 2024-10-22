@@ -12,6 +12,7 @@ const app = express();
 
 const model = require("../models/index");
 const { checkRole } = require("../middleware/check_role");
+const { validateKamar } = require("../middleware/validation/kamar");
 const kamar = model.kamar;
 
 app.get("/getAllData", auth, checkRole(["admin"]), async (req, res) => {
@@ -69,36 +70,26 @@ app.get("/getById/:id", auth, async (req, res) => {
     });
 });
 
-app.post("/create", checkRole(["admin"]), async (req, res) => {
+app.post("/create", checkRole(["admin"]), validateKamar, async (req, res) => {
   const data = {
     nomor_kamar: req.body.nomor_kamar,
     id_tipe_kamar: req.body.id_tipe_kamar,
   };
-  await kamar
-    .findOne({ where: { nomor_kamar: data.nomor_kamar } })
+
+  kamar
+    .create(data)
     .then((result) => {
-      if (result) {
-        res.status(400).json({
-          status: "error",
-          message: "Nomor kamar sudah dipakai",
-        });
-      } else {
-        kamar
-          .create(data)
-          .then((result) => {
-            res.status(200).json({
-              status: "success",
-              message: "Berhasil menambahkan data",
-              data: result,
-            });
-          })
-          .catch((error) => {
-            res.status(400).json({
-              status: "error",
-              message: error.message,
-            });
-          });
-      }
+      res.status(200).json({
+        status: "success",
+        message: "Berhasil menambahkan data",
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.status(400).json({
+        status: "error",
+        message: error.message,
+      });
     });
 });
 

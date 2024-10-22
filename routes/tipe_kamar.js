@@ -10,6 +10,7 @@ const tipe_kamar = model.tipe_kamar;
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { validateTipeKamar } = require("../middleware/validation/tipe_kamar");
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => {
@@ -62,30 +63,34 @@ app.get("/getById/:id", auth, async (req, res) => {
     });
 });
 
-app.post("/create", upload.single("foto"), async (req, res) => {
-  const data = {
-    nama_tipe_kamar: req.body.nama_tipe_kamar,
-    harga: req.body.harga,
-    deskripsi: req.body.deskripsi,
-    foto: req.file.filename,
-    resultArr: {},
-  };
-  await tipe_kamar
-    .create(data)
-    .then((result) => {
-      res.status(200).json({
-        status: "success",
-        message: "data has been inserted",
-        data: result,
+app.post(
+  "/create",
+  upload.single("foto"),
+  validateTipeKamar,
+  async (req, res) => {
+    const data = {
+      nama_tipe_kamar: req.body.nama_tipe_kamar,
+      harga: req.body.harga,
+      deskripsi: req.body.deskripsi,
+      foto: req.file.filename,
+    };
+    await tipe_kamar
+      .create(data)
+      .then((result) => {
+        res.status(200).json({
+          status: "success",
+          message: "data has been inserted",
+          data: result,
+        });
+      })
+      .catch((error) => {
+        res.status(400).json({
+          status: "error",
+          message: error.message,
+        });
       });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
-    });
-});
+  },
+);
 
 app.delete("/delete/:id_tipe_kamar", auth, async (req, res) => {
   const param = { id_tipe_kamar: req.params.id_tipe_kamar };
@@ -134,7 +139,6 @@ app.patch(
       nama_tipe_kamar: req.body.nama_tipe_kamar,
       harga: req.body.harga,
       deskripsi: req.body.deskripsi,
-      resultArr: {},
     };
 
     tipe_kamar.findOne({ where: param }).then((result) => {

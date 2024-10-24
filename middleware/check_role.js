@@ -5,7 +5,7 @@ const checkRole = (allowedRoles) => {
       next();
     } else {
       return res.status(403).json({
-        message: "Akses ditolak",
+        message: "Ooooops! Akses ditolak",
       });
     }
   };

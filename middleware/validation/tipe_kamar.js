@@ -3,26 +3,27 @@ const model = require("../../models");
 
 const tipeKamarSchema = Joi.object({
   nama_tipe_kamar: Joi.string().required().messages({
-    "string.base": "Nama tipe kamar harus berupa teks",
-    "string.empty": "Nama tipe kamar tidak boleh kosong",
-    "any.required": "Nama tipe kamar wajib diisi",
+    "string.base": "Ooooops! Nama tipe kamar harus berupa teks",
+    "string.empty": "Ooooops! Nama tipe kamar tidak boleh kosong",
+    "any.required": "Ooooops! Nama tipe kamar wajib diisi",
   }),
-  harga: Joi.number().required().messages({
-    "number.base": "Harga harus berupa angka",
-    "number.empty": "Harga tidak boleh kosong",
-    "any.required": "Harga wajib diisi",
+  harga: Joi.number().min(0).required().messages({
+    "number.base": "Ooooops! Harga harus berupa angka",
+    "number.min": "Ooooops! Harga tidak boleh kurang dari 0",
+    "number.empty": "Ooooops! Harga tidak boleh kosong",
+    "any.required": "Ooooops! Harga wajib diisi",
   }),
   deskripsi: Joi.string().required().messages({
-    "string.base": "Deskripsi harus berupa teks",
-    "string.empty": "Deskripsi tidak boleh kosong",
-    "any.required": "Deskripsi wajib diisi",
+    "string.base": "Ooooops! Deskripsi harus berupa teks",
+    "string.empty": "Ooooops! Deskripsi tidak boleh kosong",
+    "any.required": "Ooooops! Deskripsi wajib diisi",
   }),
 });
 
 exports.validateTipeKamar = async (req, res, next) => {
   const { error } = tipeKamarSchema.validate(req.body);
   if (error) {
-     const message = error.details.map((item) => item.message).join(" ")
+    const message = error.details.map((item) => item.message).join(" ");
     return res.status(400).json({ status: "error", message: message });
   }
 
@@ -33,7 +34,10 @@ exports.validateTipeKamar = async (req, res, next) => {
   if (isNewName) {
     return res
       .status(400)
-      .json({ status: "error", message: "Nama tipe kamar sudah digunakan" });
+      .json({
+        status: "error",
+        message: "Ooooops! Nama tipe kamar sudah digunakan",
+      });
   }
 
   next();

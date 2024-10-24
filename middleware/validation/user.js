@@ -4,23 +4,23 @@ const bcrypt = require("bcrypt");
 
 const userSchema = Joi.object({
   nama_user: Joi.string().required().messages({
-    "string.empty": "Nama user tidak boleh kosong",
-    "any.required": "Nama user wajib diisi",
+    "string.empty": "Ooooops! Nama user tidak boleh kosong",
+    "any.required": "Ooooops! Nama user wajib diisi",
   }),
   email: Joi.string().email().required().messages({
-    "string.email": "Format email tidak valid",
-    "string.empty": "Email tidak boleh kosong",
-    "any.required": "Email wajib diisi",
+    "string.email": "Ooooops! Format email tidak valid",
+    "string.empty": "Ooooops! Email tidak boleh kosong",
+    "any.required": "Ooooops! Email wajib diisi",
   }),
-  password: Joi.string().min(6).required().messages({
-    "string.empty": "Password tidak boleh kosong",
-    "string.min": "Password harus memiliki minimal 6 karakter",
-    "any.required": "Password wajib diisi",
+  password: Joi.string().min(8).required().messages({
+    "string.empty": "Ooooops! Password tidak boleh kosong",
+    "string.min": "Ooooops! Password harus memiliki minimal 8 karakter",
+    "any.required": "Ooooops! Password wajib diisi",
   }),
   role: Joi.string().valid("admin", "resepsionis", "tamu").required().messages({
     "any.only":
-      "Role harus salah satu dari 'admin', 'resepsionis', atau 'tamu'",
-    "any.required": "Role wajib diisi",
+      "Ooooops! Role harus salah satu dari 'admin', 'resepsionis', atau 'tamu'",
+    "any.required": "Ooooops! Role wajib diisi",
   }),
 });
 
@@ -38,7 +38,7 @@ exports.validateUser = async (req, res, next) => {
   if (isNewEmail) {
     return res
       .status(400)
-      .json({ status: "error", message: "Email sudah digunakan" });
+      .json({ status: "error", message: "Ooooops! Email sudah terdaftar" });
   }
 
   next();
@@ -46,13 +46,13 @@ exports.validateUser = async (req, res, next) => {
 
 const userLoginSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    "string.email": "Format email tidak valid",
-    "string.empty": "Email tidak boleh kosong",
-    "any.required": "Email wajib diisi",
+    "string.email": "Ooooops! Format email tidak valid",
+    "string.empty": "Ooooops! Email tidak boleh kosong",
+    "any.required": "Ooooops! Email wajib diisi",
   }),
   password: Joi.string().required().messages({
-    "string.empty": "Password tidak boleh kosong",
-    "any.required": "Password wajib diisi",
+    "string.empty": "Ooooops! Password tidak boleh kosong",
+    "any.required": "Ooooops! Password wajib diisi",
   }),
 });
 
@@ -70,7 +70,7 @@ exports.validateUserLogin = async (req, res, next) => {
   if (!validUser) {
     return res
       .status(400)
-      .json({ status: "error", message: "Kesalahan email atau password" });
+      .json({ status: "error", message: "Ooooops! Email atau password salah" });
   }
 
   const validPassword = await bcrypt.compare(
@@ -81,7 +81,7 @@ exports.validateUserLogin = async (req, res, next) => {
   if (!validPassword) {
     return res
       .status(400)
-      .json({ status: "error", message: "Kesalahan email atau password" });
+      .json({ status: "error", message: "Ooooops! Email atau password salah" });
   }
 
   req.validUser = validUser;

@@ -5,6 +5,7 @@ const {
   literal,
   fn,
   col,
+  or,
 } = require("sequelize");
 const auth = require("../middleware/auth");
 
@@ -24,6 +25,7 @@ app.get("/getAllData", async (req, res) => {
           as: "tipe_kamar",
         },
       ],
+      order: [["createdAt", "ASC"]],
     })
     .then((result) => {
       res.status(200).json({
@@ -34,7 +36,8 @@ app.get("/getAllData", async (req, res) => {
     .catch((error) => {
       res.status(400).json({
         status: "error",
-        message: error.message,
+        message: "Ooooops! Terjadi kesalahan pada server",
+        error: error.message,
       });
     });
 });
@@ -48,6 +51,7 @@ app.get("/getById/:id", async (req, res) => {
           as: "tipe_kamar",
         },
       ],
+      order: [["createdAt", "ASC"]],
     })
     .then((result) => {
       if (result) {
@@ -58,14 +62,15 @@ app.get("/getById/:id", async (req, res) => {
       } else {
         res.status(404).json({
           status: "error",
-          message: "data not found",
+          message: "Ooooops! Data tidak ditemukan",
         });
       }
     })
     .catch((error) => {
       res.status(400).json({
         status: "error",
-        message: error.message,
+        message: "Ooooops! Terjadi kesalahan pada server",
+        error: error.message,
       });
     });
 });
@@ -86,14 +91,15 @@ app.post(
       .then((result) => {
         res.status(200).json({
           status: "success",
-          message: "Berhasil menambahkan data",
+          message: "Yeaayyy! Berhasil menambahkan data",
           data: result,
         });
       })
       .catch((error) => {
         res.status(400).json({
           status: "error",
-          message: error.message,
+          message: "Ooooops! Terjadi kesalahan pada server",
+          error: error.message,
         });
       });
   },
@@ -111,7 +117,7 @@ app.delete(
         if (result) {
           res.status(200).json({
             status: "success",
-            message: "room has been deleted",
+            message: "Yeaayyy! Berhasil menghapus data",
             data: param,
           });
         }
@@ -121,86 +127,62 @@ app.delete(
           res.status(400).json({
             status: "error",
             message:
-              "Tidak bisa menghapus data ini, karena masih terdapat relasi dengan data lain",
+              "Oooops! Data ini tidak bisa dihapus karena sedang digunakan",
           });
         }
 
         res.status(400).json({
           status: "error",
-          message: error.message,
+          message: "Ooooops! Terjadi kesalahan pada server",
+          error: error.message,
         });
       });
   },
 );
 
 app.patch("/edit/:id_kamar", auth, checkRole(["admin"]), async (req, res) => {
-  const param = { id_kamar: req.params.id_kamar };
-  const data = {
-    nomor_kamar: req.body.nomor_kamar,
-    id_tipe_kamar: req.body.id_tipe_kamar,
-  };
+  const { id_kamar } = req.params;
+  const { nomor_kamar, id_tipe_kamar } = req.body;
 
-  kamar.findOne({ where: param }).then((result) => {
-    if (result) {
-      if (data.nomor_kamar != null) {
-        kamar
-          .findOne({ where: { nomor_kamar: data.nomor_kamar } })
-          .then((result) => {
-            if (result) {
-              res.status(400).json({
-                status: "error",
-                message: "Nomor kamar sudah terpakai",
-              });
-            } else {
-              kamar
-                .update(data, { where: param })
-                .then((result) => {
-                  res.status(200).json({
-                    status: "success",
-                    message: "Berhasil mengubah data",
-                    data: {
-                      id_kamar: param.id_kamar,
-                      nomor_kamar: data.nomor_kamar,
-                      id_tipe_kamar: data.id_tipe_kamar,
-                    },
-                  });
-                })
-                .catch((error) => {
-                  res.status(400).json({
-                    status: "error",
-                    message: error.message,
-                  });
-                });
-            }
-          });
-      } else {
-        kamar
-          .update(data, { where: param })
-          .then((result) => {
-            res.status(200).json({
-              status: "success",
-              message: "data has been updated",
-              data: {
-                id_kamar: param.id_kamar,
-                nomor_kamar: data.nomor_kamar,
-                id_tipe_kamar: data.id_tipe_kamar,
-              },
-            });
-          })
-          .catch((error) => {
-            res.status(400).json({
-              status: "error",
-              message: error.message,
-            });
-          });
-      }
-    } else {
-      res.status(404).json({
+  try {
+    const kamarToUpdate = await kamar.findOne({ where: { id_kamar } });
+
+    if (!kamarToUpdate) {
+      return res.status(404).json({
         status: "error",
-        message: "Data tidak ditemukan",
+        message: "Oooops! Data tidak ditemukan",
       });
     }
-  });
+
+    if (nomor_kamar) {
+      const existingKamar = await kamar.findOne({ where: { nomor_kamar } });
+
+      if (existingKamar && existingKamar.id_tipe_kamar === id_tipe_kamar) {
+        return res.status(400).json({
+          status: "error",
+          message: "Oooops! Nomor kamar sudah digunakan",
+        });
+      }
+    }
+
+    await kamar.update({ nomor_kamar, id_tipe_kamar }, { where: { id_kamar } });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Yeeayy! Data berhasil diubah",
+      data: {
+        id_kamar,
+        nomor_kamar,
+        id_tipe_kamar,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Ooooops! Terjadi kesalahan pada server",
+      error: error.message,
+    });
+  }
 });
 
 app.get("/search/:nomor_kamar", async (req, res) => {
@@ -217,18 +199,29 @@ app.get("/search/:nomor_kamar", async (req, res) => {
           as: "tipe_kamar",
         },
       ],
+      order: [["createdAt", "ASC"]],
     })
     .then((result) => {
-      res.status(200).json({
+      if (result.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Oooops! Data kamar tidak ditemukan",
+        });
+      }
+
+      return res.status(200).json({
         status: "success",
-        message: "result of nomor kamar " + req.params.nomor_kamar,
+        message:
+          "Yeaayyy! Berhasil mendapatkan kamar dengan nomor: " +
+          req.params.nomor_kamar,
         data: result,
       });
     })
     .catch((error) => {
       res.status(400).json({
         status: "error",
-        message: error.message,
+        message: "Ooooops! Terjadi kesalahan pada server",
+        error: error.message,
       });
     });
 });
@@ -249,14 +242,17 @@ app.get("/getByTipeKamar/:id_tipe_kamar", async (req, res) => {
     .then((result) => {
       res.status(200).json({
         status: "success",
-        message: "result of tipe kamar " + req.params.id_tipe_kamar,
+        message:
+          "Yeaayyy! Berhasil mendapatkan data dengan tipe: " +
+          req.params.id_tipe_kamar,
         data: result,
       });
     })
     .catch((error) => {
       res.status(400).json({
         status: "error",
-        message: error.message,
+        message: "Ooooops! Terjadi kesalahan pada server",
+        error: error.message,
       });
     });
 });
@@ -272,7 +268,11 @@ app.get("/getTipeKamarAvailable/:tgl1/:tgl2", async (req, res) => {
             `(SELECT id_kamar from detail_pemesanan as dp
             JOIN pemesanan as p ON p.id_pemesanan = dp.id_pemesanan
             WHERE p.status_pemesanan != 'check_out'
-            AND dp.tgl_akses BETWEEN '${tgl1}' AND '${tgl2}')`,
+            AND (
+              (p.tgl_check_in BETWEEN '${tgl1}' AND '${tgl2}')
+              OR (p.tgl_check_out BETWEEN '${tgl1}' AND '${tgl2}')
+            )
+            )`,
           ),
         },
       },
@@ -292,7 +292,7 @@ app.get("/getTipeKamarAvailable/:tgl1/:tgl2", async (req, res) => {
       return res.json({
         status: "success",
         data: [],
-        message: "Tidak ada kamar yang tersedia di antara tanggal itu",
+        message: "Oooops! Tidak ada kamar yang tersedia",
       });
     }
 
@@ -306,8 +306,8 @@ app.get("/getTipeKamarAvailable/:tgl1/:tgl2", async (req, res) => {
 
     return res.json({
       status: "success",
+      message: "Yeaayyy! Berhasil mendapatkan data",
       data: responseData,
-      message: "Berhasil mendapatkan data tipe kamar yang tersedia",
     });
   } catch (error) {
     return res.status(500).json({

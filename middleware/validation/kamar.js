@@ -2,16 +2,16 @@ const Joi = require("joi");
 const model = require("../../models");
 
 const kamarSchema = Joi.object({
-  nomor_kamar: Joi.string().required().messages({
-    "string.base": "Nomor kamar harus berupa teks",
-    "string.empty": "Nomor kamar tidak boleh kosong",
-    "any.required": "Nomor kamar wajib diisi",
+  nomor_kamar: Joi.number().required().messages({
+    "number.base": "Ooooops! Nomor kamar harus berupa teks",
+    "number.empty": "Ooooops! Nomor kamar tidak boleh kosong",
+    "any.required": "Ooooops! Nomor kamar wajib diisi",
   }),
   id_tipe_kamar: Joi.string().guid({ version: "uuidv4" }).required().messages({
-    "string.base": "Id tipe kamar harus berupa teks",
-    "string.empty": "Id tipe kamar tidak boleh kosong",
-    "any.required": "Id tipe kamar wajib diisi",
-    "string.guid": "Id tipe kamar harus berupa UUID",
+    "string.base": "Ooooops! Id tipe kamar harus sesuai",
+    "string.empty": "Ooooops! Id tipe kamar tidak boleh kosong",
+    "any.required": "Ooooops! Id tipe kamar wajib diisi",
+    "string.guid": "Ooooops! Id tipe kamar harus berupa UUID",
   }),
 });
 
@@ -30,7 +30,10 @@ exports.validateKamar = async (req, res, next) => {
   if (!validTipeKamar) {
     return res
       .status(400)
-      .json({ status: "error", message: "Tipe kamar tidak ditemukan" });
+      .json({
+        status: "error",
+        message: "Ooooops! Tipe kamar tidak ditemukan",
+      });
   }
 
   const isNewNomor = await model.kamar.findOne({
@@ -40,7 +43,10 @@ exports.validateKamar = async (req, res, next) => {
   if (isNewNomor) {
     return res
       .status(400)
-      .json({ status: "error", message: "Nomor kamar sudah digunakan" });
+      .json({
+        status: "error",
+        message: "Ooooops! Nomor kamar sudah digunakan",
+      });
   }
 
   next();

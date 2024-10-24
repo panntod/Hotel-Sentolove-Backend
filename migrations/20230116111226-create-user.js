@@ -1,5 +1,4 @@
 "use strict";
-const { v4: uuidv4 } = require("uuid");
 
 module.exports = {
   async up(queryInterface, Sequelize) {
@@ -24,6 +23,14 @@ module.exports = {
       },
       role: {
         type: Sequelize.ENUM("admin", "resepsionis", "tamu"),
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
       },
     });
   },

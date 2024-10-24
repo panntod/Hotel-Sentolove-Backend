@@ -289,8 +289,8 @@ app.post("/create", async (req, res) => {
             JOIN pemesanan AS p ON p.id_pemesanan = dp.id_pemesanan
             WHERE p.status_pemesanan != 'check_out'
             AND (
-              (p.tgl_check_in BETWEEN '${check_in}' AND '${check_out}')
-              OR (p.tgl_check_out BETWEEN '${check_in}' AND '${check_out}')
+              (p.tgl_check_in BETWEEN '${date1.format("YYYY-MM-DD")}' AND '${date2.format("YYYY-MM-DD")}')
+              OR (p.tgl_check_out BETWEEN '${date1.format("YYYY-MM-DD")}' AND '${date2.format("YYYY-MM-DD")}')
             )
           )`),
         },
@@ -467,42 +467,73 @@ app.post("/searchByEmailAndNumber", auth, async (req, res) => {
 });
 
 app.get("/filter/check_in/:tgl_check_in", auth, async (req, res) => {
-  const tgl_check_in = req.params.tgl_check_in.slice(0, 10);
-  model.pemesanan
-    .findAll({
+  const tgl_check_in = req.params.tgl_check_in;
+
+  try {
+    const startDate = moment(tgl_check_in).startOf("day").toISOString();
+    const endDate = moment(tgl_check_in).endOf("day").toISOString();
+
+    const result = await model.pemesanan.findAll({
       where: {
         tgl_check_in: {
-          [Op.between]: [
-            tgl_check_in + " 00:00:00",
-            tgl_check_in + " 23:59:59",
-          ],
+          [Op.between]: [startDate, endDate],
         },
       },
+      attributes: [
+        "id_pemesanan",
+        "nama_pemesan",
+        "nomor_pemesanan",
+        "email_pemesan",
+        "tgl_pemesanan",
+        "tgl_check_in",
+        "tgl_check_out",
+        "nama_tamu",
+        "jumlah_kamar",
+        "status_pemesanan",
+      ],
       include: [
         {
           model: model.tipe_kamar,
           as: "tipe_kamar",
+          attributes: ["nama_tipe_kamar", "foto"],
         },
         {
           model: model.user,
           as: "user",
+          attributes: ["nama_user"],
+          required: false,
+        },
+        {
+          model: model.detail_pemesanan,
+          as: "detail_pemesanan",
+          attributes: ["id_kamar", "harga"],
         },
       ],
-    })
-    .then((result) => {
-      res.status(200).json({
-        status: "success",
-        message: "Hasil pencarian tangal: " + req.params.tgl_check_in,
-        data: result,
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        status: "error",
-        message: "Ooooops! Terjadi kesalahan pada server",
-        error: error.message,
-      });
+      order: [["tgl_pemesanan", "DESC"]],
     });
+
+    if (result.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Oooops! Data tidak ditemukan",
+        data: [],
+      });
+    }
+
+    const data = await formatPemesananData(result);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Hasil pencarian tangal: " + req.params.tgl_check_in,
+      data: data,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      status: "error",
+      message: "Ooooops! Terjadi kesalahan pada server",
+      error: error.message,
+    });
+  }
 });
 
 app.patch("/edit/:id_pemesanan", auth, async (req, res) => {

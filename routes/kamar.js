@@ -264,16 +264,15 @@ app.get("/getTipeKamarAvailable/:tgl1/:tgl2", async (req, res) => {
     const result = await kamar.findAll({
       where: {
         id_kamar: {
-          [Op.notIn]: literal(
-            `(SELECT id_kamar from detail_pemesanan as dp
-            JOIN pemesanan as p ON p.id_pemesanan = dp.id_pemesanan
+          [Op.notIn]: literal(`(
+            SELECT id_kamar FROM detail_pemesanan AS dp
+            JOIN pemesanan AS p ON p.id_pemesanan = dp.id_pemesanan
             WHERE p.status_pemesanan != 'check_out'
             AND (
-              (p.tgl_check_in BETWEEN '${tgl1}' AND '${tgl2}')
-              OR (p.tgl_check_out BETWEEN '${tgl1}' AND '${tgl2}')
+              p.tgl_check_in <= '${tgl2}' 
+              AND p.tgl_check_out >= '${tgl1}'
             )
-            )`,
-          ),
+          )`),
         },
       },
       include: [

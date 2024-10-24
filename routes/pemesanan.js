@@ -228,7 +228,7 @@ app.get("/getByIdUser/:id_user", auth, async (req, res) => {
   }
 });
 
-app.post("/create", async (req, res) => {
+app.post("/create", auth, validatePemesanan, async (req, res) => {
   try {
     const {
       tipe_kamar,
@@ -289,8 +289,8 @@ app.post("/create", async (req, res) => {
             JOIN pemesanan AS p ON p.id_pemesanan = dp.id_pemesanan
             WHERE p.status_pemesanan != 'check_out'
             AND (
-              (p.tgl_check_in BETWEEN '${date1.format("YYYY-MM-DD")}' AND '${date2.format("YYYY-MM-DD")}')
-              OR (p.tgl_check_out BETWEEN '${date1.format("YYYY-MM-DD")}' AND '${date2.format("YYYY-MM-DD")}')
+              p.tgl_check_in <= '${date2.format("YYYY-MM-DD")}' 
+              AND p.tgl_check_out >= '${date1.format("YYYY-MM-DD")}'
             )
           )`),
         },
